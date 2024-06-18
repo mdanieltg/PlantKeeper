@@ -18,6 +18,7 @@ public class Profiles : Profile
 
         // WateringMethod
         CreateMap<WateringMethod, WateringMethodDto>();
+        CreateMap<InputWateringMethod, WateringMethod>();
 
         // WateringLog
         CreateMap<WateringLog, WateringLogDto>();
