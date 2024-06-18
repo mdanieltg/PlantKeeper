@@ -44,14 +44,44 @@ public class KeepersController : ControllerBase
         return CreatedAtAction(nameof(Get), new { keeperId = keeperToReturn.Id }, keeperToReturn);
     }
 
-    [HttpGet("{keeperId}")]
+    [HttpGet("{keeperId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<KeeperDto>> Get([FromRoute] Guid keeperId)
     {
         var keeper = await _dbContext.Keepers.FindAsync(keeperId);
-        return keeper is null
-            ? NotFound()
-            : Ok(_mapper.Map<KeeperDto>(keeper));
+        return keeper is not null
+            ? Ok(_mapper.Map<KeeperDto>(keeper))
+            : NotFound();
+    }
+
+    [HttpPut("{keeperId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Update([FromRoute] Guid keeperId, [FromBody] InputKeeper keeper)
+    {
+        var currentKeeper = await _dbContext.Keepers.FindAsync(keeperId);
+        if (currentKeeper is null) return NotFound();
+
+        currentKeeper.Name = keeper.Name;
+        await _dbContext.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpDelete("{keeperId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete([FromRoute] Guid keeperId)
+    {
+        var keeper = await _dbContext.Keepers.FindAsync(keeperId);
+        if (keeper is null) return NotFound();
+
+        _dbContext.Remove(keeper);
+        await _dbContext.SaveChangesAsync();
+
+        return NoContent();
     }
 }
