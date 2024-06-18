@@ -22,5 +22,6 @@ public class Profiles : Profile
 
         // WateringLog
         CreateMap<WateringLog, WateringLogDto>();
+        CreateMap<InputWateringLog, WateringLog>();
     }
 }
