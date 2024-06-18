@@ -25,8 +25,6 @@ public class PlantKeeperDbContext : DbContext
                 .Property(plant => plant.Name)
                 .HasMaxLength(30)
                 .IsRequired();
-            builder.Property(plant => plant.Picture)
-                .HasMaxLength(2_000_000);
             builder.Property(plant => plant.Care)
                 .HasMaxLength(255);
         });
