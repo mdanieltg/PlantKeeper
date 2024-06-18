@@ -5,6 +5,14 @@ namespace PlantKeeperAPI.Database;
 
 public class PlantKeeperDbContext : DbContext
 {
+    public PlantKeeperDbContext()
+    {
+    }
+
+    public PlantKeeperDbContext(DbContextOptions<PlantKeeperDbContext> options) : base(options)
+    {
+    }
+
     public DbSet<Keeper> Keepers { get; set; }
     public DbSet<Plant> Plants { get; set; }
     public DbSet<WateringMethod> WateringMethods { get; set; }

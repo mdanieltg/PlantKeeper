@@ -1,21 +1,12 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using PlantKeeperAPI.Database;
+using PlantKeeperAPI.Initialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers(options => options.ReturnHttpNotAcceptable = true);
-builder.Services.AddDbContext<PlantKeeperDbContext>();
+builder.Services.AddDatabase(builder.Configuration, builder.Environment);
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
-// builder.Services.AddAuthentication(options =>
-// {
-//     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-//     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-// })
-// .AddJwtBearer()
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -37,6 +28,6 @@ else
 }
 
 // app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthorization();
 app.MapControllers();
 app.Run();
