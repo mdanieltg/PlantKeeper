@@ -10,5 +10,5 @@ public class Plant
     public byte[]? Picture { get; set; }
     public string? Care { get; set; }
 
-    public HashSet<WateringLog> WateringLogs { get; set; }
+    public HashSet<WateringLog> WateringLogs { get; set; } = new();
 }
