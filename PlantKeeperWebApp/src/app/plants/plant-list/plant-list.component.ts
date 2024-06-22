@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { NgForOf } from "@angular/common";
 import { Plant } from "../plant";
+import { PlantKeeperService } from "../../plant-keeper.service";
 
 @Component({
   selector: 'app-plant-list',
@@ -11,14 +12,14 @@ import { Plant } from "../plant";
   templateUrl: './plant-list.component.html',
   styleUrl: './plant-list.component.css'
 })
-export class PlantListComponent {
-  plants: Plant[] = [
-    { id: '', name: 'Teléfono' },
-    { id: '', name: 'Lavanda' },
-    { id: '', name: 'Cuna de Moisés' },
-    { id: '', name: 'Helecho' },
-    { id: '', name: 'Espada' },
-    { id: '', name: 'Citronela' },
-    { id: '', name: 'Albaca' }
-  ];
+export class PlantListComponent implements OnInit {
+
+  plants: Plant[] = [];
+
+  constructor(private plantKeeperService: PlantKeeperService) {
+  }
+
+  ngOnInit() {
+    this.plantKeeperService.getPlants().subscribe(plants => this.plants = plants);
+  }
 }
