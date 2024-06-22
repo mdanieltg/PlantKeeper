@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { AppComponent } from "./app.component";
+import { StartComponent } from "./start/start.component";
 import { PlantListComponent } from "./plants/plant-list/plant-list.component";
 import { PlantDetailsComponent } from "./plants/plant-details/plant-details.component";
 import { KeeperListComponent } from "./keepers/keeper-list/keeper-list.component";
@@ -16,5 +16,5 @@ export const routes: Routes = [
   { path: 'plants/:id', component: PlantDetailsComponent },
   { path: 'watering-methods', component: WateringMethodListComponent },
   { path: 'watering-methods/:id', component: WateringMethodDetailsComponent },
-  { path: '', component: AppComponent },
+  { path: '', component: StartComponent, pathMatch: 'full' },
 ];
