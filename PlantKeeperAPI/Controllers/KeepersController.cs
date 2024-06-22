@@ -24,7 +24,9 @@ public class KeepersController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public IEnumerable<KeeperDto> List() => _mapper.Map<IEnumerable<KeeperDto>>(_dbContext.Keepers);
+    public IEnumerable<KeeperDto> List() => _mapper.Map<IEnumerable<KeeperDto>>(
+        _dbContext.Keepers.OrderBy(keeper => keeper.Name)
+    );
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]

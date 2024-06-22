@@ -24,8 +24,9 @@ public class WateringMethodsController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public IEnumerable<WateringMethodDto> List() =>
-        _mapper.Map<IEnumerable<WateringMethodDto>>(_dbContext.WateringMethods);
+    public IEnumerable<WateringMethodDto> List() => _mapper.Map<IEnumerable<WateringMethodDto>>(
+        _dbContext.WateringMethods.OrderBy(method => method.Name)
+    );
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]

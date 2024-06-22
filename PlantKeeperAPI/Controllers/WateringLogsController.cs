@@ -24,7 +24,9 @@ public class WateringLogsController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public IEnumerable<WateringLogDto> List() => _mapper.Map<IEnumerable<WateringLogDto>>(_dbContext.WateringLogs);
+    public IEnumerable<WateringLogDto> List() => _mapper.Map<IEnumerable<WateringLogDto>>(
+        _dbContext.WateringLogs.OrderBy(log => log.Date)
+    );
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
