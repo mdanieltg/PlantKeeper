@@ -10,11 +10,11 @@ import {
 } from "./watering-methods/watering-method-details/watering-method-details.component";
 
 export const routes: Routes = [
-  { path: 'keepers', component: KeeperListComponent },
-  { path: 'keepers/:id', component: KeeperDetailsComponent },
-  { path: 'plants', component: PlantListComponent },
-  { path: 'plants/:id', component: PlantDetailsComponent },
-  { path: 'watering-methods', component: WateringMethodListComponent },
-  { path: 'watering-methods/:id', component: WateringMethodDetailsComponent },
+  { path: 'keepers', component: KeeperListComponent, pathMatch: 'full' },
+  { path: 'keepers/:id', component: KeeperDetailsComponent, pathMatch: 'full' },
+  { path: 'plants', component: PlantListComponent, pathMatch: 'full' },
+  { path: 'plants/:id', component: PlantDetailsComponent, pathMatch: 'full' },
+  { path: 'watering-methods', component: WateringMethodListComponent, pathMatch: 'full' },
+  { path: 'watering-methods/:id', component: WateringMethodDetailsComponent, pathMatch: 'full' },
   { path: '', component: StartComponent, pathMatch: 'full' },
 ];
