@@ -1,1 +1,11 @@
-<p>watering-method-details works!</p>
+<div *ngIf="method else noMethod">
+  <h2>{{ method.name }}</h2>
+  <p *ngIf="method.description else noDescription">{{ method.description }}</p>
+  <ng-template #noDescription>
+    <p>No description.</p>
+  </ng-template>
+</div>
+<ng-template #noMethod>
+  <p>Sorry, the watering method that you are looking for does not exist. <a routerLink="/methods">See all watering
+    methods</a>.</p>
+</ng-template>

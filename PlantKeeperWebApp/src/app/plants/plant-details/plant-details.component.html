@@ -1,2 +1,10 @@
-<h2>{{ plant!.name }}</h2>
-<p>Care: {{ plant!.care }}</p>
+<div *ngIf="plant else noPlant">
+  <h2>{{ plant.name }}</h2>
+  <p *ngIf="plant.care else noCare">Care: {{ plant.care }}</p>
+  <ng-template #noCare>
+    <p>No special care.</p>
+  </ng-template>
+</div>
+<ng-template #noPlant>
+  <p>Sorry, the plant that you are looking for does not exist. <a routerLink="/plants">See all plants</a>.</p>
+</ng-template>
