@@ -1,6 +1,19 @@
-<header></header>
+<header>
+  <h1>{{ title }}</h1>
+  <nav>
+    <ul>
+      <li><a routerLink="/">Start</a></li>
+      <li><a routerLink="/plants">Plants</a></li>
+      <li><a routerLink="/keepers">Keepers</a></li>
+      <li><a routerLink="/watering-methods">Watering methods</a></li>
+      <li><a routerLink="/watering-logs">Watering logs</a></li>
+    </ul>
+  </nav>
+</header>
 <main>
-  <h1>{{title}}</h1>
   <router-outlet></router-outlet>
 </main>
-<footer></footer>
+<footer>
+  <p>Made with 🌿 and 💚.</p>
+  <p>Source code located at <a href="https://github.com/mdanieltg/PlantKeeper" target="_blank">GitHub</a>.</p>
+</footer>
