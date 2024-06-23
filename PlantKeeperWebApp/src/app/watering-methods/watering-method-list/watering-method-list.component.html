@@ -1,1 +1,3 @@
-<p>watering-method-list works!</p>
+<div *ngFor="let method of methods">
+  {{ method.name }} - <a routerLink="/watering-methods/{{ method.id }}">detalle</a>
+</div>

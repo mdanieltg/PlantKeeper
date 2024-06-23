@@ -1,3 +1,3 @@
 <div *ngFor="let plant of plants">
-  {{ plant.name }}
+  {{ plant.name }} - <a routerLink="/plants/{{ plant.id }}">detalle</a>
 </div>
