@@ -1,5 +1,5 @@
 ﻿using System.Net.Mime;
-using AutoMapper;
+using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;

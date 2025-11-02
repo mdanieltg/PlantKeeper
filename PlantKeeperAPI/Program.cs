@@ -1,4 +1,4 @@
-using System.Reflection;
+using Mapster;
 using PlantKeeperAPI.Initialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,7 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers(options => options.ReturnHttpNotAcceptable = true);
 builder.Services.AddDatabase(builder.Configuration, builder.Environment);
-builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("devenv", policyBuilder => policyBuilder
@@ -14,6 +13,7 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod()
         .AllowAnyOrigin());
 });
+builder.Services.AddMapster();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
