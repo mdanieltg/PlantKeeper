@@ -36,16 +36,12 @@ public class WateringLogsController : ControllerBase
     {
         var plant = await _dbContext.Plants.FindAsync(wateringLog.PlantId);
         var wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringLog.WateringMethodId);
-        var keeper = await _dbContext.Keepers.FindAsync(wateringLog.KeeperId);
 
         if (plant is null)
             ModelState.TryAddModelError("plantId", "The plant provided does not exist.");
 
         if (wateringMethod is null)
             ModelState.TryAddModelError("wateringMethodId", "The watering method provided does not exist");
-
-        if (keeper is null)
-            ModelState.TryAddModelError("keeperId", "The keeper provided does not exist.");
 
         if (!ModelState.IsValid) return UnprocessableEntity(new ValidationProblemDetails(ModelState));
 
@@ -80,16 +76,12 @@ public class WateringLogsController : ControllerBase
 
         var plant = await _dbContext.Plants.FindAsync(wateringLog.PlantId);
         var wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringLog.WateringMethodId);
-        var keeper = await _dbContext.Keepers.FindAsync(wateringLog.KeeperId);
 
         if (plant is null)
             ModelState.TryAddModelError("plantId", "The plant provided does not exist.");
 
         if (wateringMethod is null)
             ModelState.TryAddModelError("wateringMethodId", "The watering method provided does not exist");
-
-        if (keeper is null)
-            ModelState.TryAddModelError("keeperId", "The keeper provided does not exist.");
 
         if (!ModelState.IsValid) return UnprocessableEntity(new ValidationProblemDetails(ModelState));
 

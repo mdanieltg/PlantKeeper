@@ -11,5 +11,4 @@ public class WateringLog
 
     public Plant Plant { get; set; } = null!;
     public WateringMethod WateringMethod { get; set; } = null!;
-    public Keeper Keeper { get; set; } = null!;
 }

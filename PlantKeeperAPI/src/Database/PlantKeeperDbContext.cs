@@ -13,7 +13,6 @@ public class PlantKeeperDbContext : DbContext
     {
     }
 
-    public DbSet<Keeper> Keepers { get; set; }
     public DbSet<Plant> Plants { get; set; }
     public DbSet<WateringMethod> WateringMethods { get; set; }
     public DbSet<WateringLog> WateringLogs { get; set; }
@@ -37,14 +36,6 @@ public class PlantKeeperDbContext : DbContext
                 .HasMaxLength(255);
         });
 
-        modelBuilder.Entity<Keeper>(builder =>
-        {
-            builder.HasKey(keeper => keeper.Id);
-            builder.Property(keeper => keeper.Name)
-                .HasMaxLength(20)
-                .IsRequired();
-        });
-
         modelBuilder.Entity<WateringMethod>(builder =>
         {
             builder.HasKey(waterMethod => waterMethod.Id);
@@ -61,10 +52,6 @@ public class PlantKeeperDbContext : DbContext
             builder.HasOne(log => log.WateringMethod)
                 .WithMany(method => method.WateringLogs)
                 .HasForeignKey(log => log.WateringMethodId)
-                .IsRequired();
-            builder.HasOne(log => log.Keeper)
-                .WithMany(keeper => keeper.WateringLogs)
-                .HasForeignKey(log => log.KeeperId)
                 .IsRequired();
             builder.Property(log => log.Comments)
                 .HasMaxLength(255);
