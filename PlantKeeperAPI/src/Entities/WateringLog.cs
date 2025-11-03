@@ -9,6 +9,6 @@ public class WateringLog
     public DateTime Date { get; set; }
     public string? Comments { get; set; }
 
-    public Plant Plant { get; set; } = null!;
-    public WateringMethod WateringMethod { get; set; } = null!;
+    public Plant Plant { get; init; } = null!;
+    public WateringMethod WateringMethod { get; init; } = null!;
 }

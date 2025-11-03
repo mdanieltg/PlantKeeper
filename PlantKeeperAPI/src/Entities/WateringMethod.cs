@@ -9,5 +9,5 @@ public class WateringMethod
     public required string Name { get; set; }
     public string? Description { get; set; }
 
-    public HashSet<WateringLog> WateringLogs { get; set; } = new();
+    public List<WateringLog> WateringLogs { get; } = [];
 }
