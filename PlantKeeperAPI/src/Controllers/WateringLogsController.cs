@@ -34,8 +34,8 @@ public class WateringLogsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Create([FromBody] InputWateringLog wateringLog)
     {
-        var plant = await _dbContext.Plants.FindAsync(wateringLog.PlantId);
-        var wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringLog.WateringMethodId);
+        Plant? plant = await _dbContext.Plants.FindAsync(wateringLog.PlantId);
+        WateringMethod? wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringLog.WateringMethodId);
 
         if (plant is null)
             ModelState.TryAddModelError("plantId", "The plant provided does not exist.");
@@ -58,7 +58,7 @@ public class WateringLogsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<WateringLogDto>> Get([FromRoute] Guid wateringLogId)
     {
-        var wateringLog = await _dbContext.WateringLogs.FindAsync(wateringLogId);
+        WateringLog? wateringLog = await _dbContext.WateringLogs.FindAsync(wateringLogId);
         return wateringLog is not null
             ? Ok(_mapper.Map<WateringLogDto>(wateringLog))
             : NotFound();
@@ -71,11 +71,11 @@ public class WateringLogsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Update([FromRoute] Guid wateringLogId, [FromBody] InputWateringLog wateringLog)
     {
-        var currentWateringLog = await _dbContext.WateringLogs.FindAsync(wateringLogId);
+        WateringLog? currentWateringLog = await _dbContext.WateringLogs.FindAsync(wateringLogId);
         if (currentWateringLog is null) return NotFound();
 
-        var plant = await _dbContext.Plants.FindAsync(wateringLog.PlantId);
-        var wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringLog.WateringMethodId);
+        Plant? plant = await _dbContext.Plants.FindAsync(wateringLog.PlantId);
+        WateringMethod? wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringLog.WateringMethodId);
 
         if (plant is null)
             ModelState.TryAddModelError("plantId", "The plant provided does not exist.");
@@ -96,7 +96,7 @@ public class WateringLogsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete([FromRoute] Guid wateringLogId)
     {
-        var wateringLog = await _dbContext.WateringLogs.FindAsync(wateringLogId);
+        WateringLog? wateringLog = await _dbContext.WateringLogs.FindAsync(wateringLogId);
         if (wateringLog is null) return NotFound();
 
         _dbContext.Remove(wateringLog);

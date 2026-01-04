@@ -47,7 +47,7 @@ public class PlantsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PlantDto>> Get([FromRoute] Guid plantId)
     {
-        var plant = await _dbContext.Plants.FindAsync(plantId);
+        Plant? plant = await _dbContext.Plants.FindAsync(plantId);
         return plant is not null
             ? Ok(_mapper.Map<PlantDto>(plant))
             : NotFound();
@@ -60,7 +60,7 @@ public class PlantsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Update([FromRoute] Guid plantId, [FromBody] InputPlant plant)
     {
-        var currentPlant = await _dbContext.Plants.FindAsync(plantId);
+        Plant? currentPlant = await _dbContext.Plants.FindAsync(plantId);
         if (currentPlant is null) return NotFound();
 
         _mapper.Map(plant, currentPlant);
@@ -74,7 +74,7 @@ public class PlantsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete([FromRoute] Guid plantId)
     {
-        var plant = await _dbContext.Plants.FindAsync(plantId);
+        Plant? plant = await _dbContext.Plants.FindAsync(plantId);
         if (plant is null) return NotFound();
 
         _dbContext.Remove(plant);

@@ -48,7 +48,7 @@ public class WateringMethodsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<WateringMethodDto>> Get([FromRoute] Guid wateringMethodId)
     {
-        var wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
+        WateringMethod? wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
         return wateringMethod is not null
             ? Ok(_mapper.Map<WateringMethodDto>(wateringMethod))
             : NotFound();
@@ -62,7 +62,7 @@ public class WateringMethodsController : ControllerBase
     public async Task<IActionResult> Update([FromRoute] Guid wateringMethodId,
         [FromBody] InputWateringMethod wateringMethod)
     {
-        var currentWateringMethod = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
+        WateringMethod? currentWateringMethod = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
         if (currentWateringMethod is null) return NotFound();
 
         _mapper.Map(wateringMethod, currentWateringMethod);
@@ -76,7 +76,7 @@ public class WateringMethodsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete([FromRoute] Guid wateringMethodId)
     {
-        var wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
+        WateringMethod? wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
         if (wateringMethod is null) return NotFound();
 
         _dbContext.Remove(wateringMethod);

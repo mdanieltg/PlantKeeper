@@ -8,7 +8,7 @@ public static class Startup
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration,
         IWebHostEnvironment environment)
     {
-        var connectionString = environment.EnvironmentName switch
+        string? connectionString = environment.EnvironmentName switch
         {
             "Production" => configuration.GetConnectionString("Production"),
             "CAE" => configuration.GetConnectionString("CAE"),
