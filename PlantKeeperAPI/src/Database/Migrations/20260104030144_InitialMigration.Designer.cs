@@ -12,8 +12,8 @@ using PlantKeeperAPI.Database;
 namespace PlantKeeperAPI.Database.Migrations
 {
     [DbContext(typeof(PlantKeeperDbContext))]
-    [Migration("20251103013937_RepottingFertilizationAndObservationLog")]
-    partial class RepottingFertilizationAndObservationLog
+    [Migration("20260104030144_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
