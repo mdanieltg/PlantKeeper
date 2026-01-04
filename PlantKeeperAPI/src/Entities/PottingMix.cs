@@ -1,13 +1,13 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace PlantKeeperAPI.Entities;
 
-[DebuggerDisplay("Treatment: {Name}")]
-public class TreatmentMethod
+[DebuggerDisplay("Potting mix: {Name}")]
+public class PottingMix
 {
     public Guid Id { get; set; }
     public required string Name { get; set; }
     public string? Description { get; set; }
 
-    public List<TreatmentLog> Logs { get; } = [];
+    public List<PlantSpecies> SpeciesList { get; } = [];
 }
