@@ -19,4 +19,5 @@ public class Plant
     public List<RepottingLog> RepottingLogs { get; } = [];
     public List<WateringLog> WateringLogs { get; } = [];
     public List<FertilizationLog> FertilizationLogs { get; } = [];
+    public List<TreatmentLog> TreatmentLogs { get; } = [];
 }
