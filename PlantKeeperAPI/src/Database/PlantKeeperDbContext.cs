@@ -18,8 +18,8 @@ public class PlantKeeperDbContext : DbContext
     public DbSet<PottingMix> PottingMixes { get; init; }
     public DbSet<Climate> Climates { get; init; }
     public DbSet<WateringMethod> WateringMethods { get; init; }
-    public DbSet<FertilizationMethod> FertilizationMethods { get; init; }
-    public DbSet<TreatmentMethod> TreatmentMethods { get; init; }
+    public DbSet<Fertilizer> Fertilizers { get; init; }
+    public DbSet<Treatment> Treatments { get; init; }
     public DbSet<WateringLog> WateringLogs { get; init; }
     public DbSet<RepottingLog> RepottingLogs { get; init; }
     public DbSet<ObservationLog> ObservationLogs { get; init; }
@@ -119,15 +119,15 @@ public class PlantKeeperDbContext : DbContext
                 .HasMaxLength(255);
         });
 
-        modelBuilder.Entity<FertilizationMethod>(builder =>
+        modelBuilder.Entity<Fertilizer>(builder =>
         {
             // Primary key
-            builder.HasKey(method => method.Id);
+            builder.HasKey(fertilizer => fertilizer.Id);
 
-            builder.Property(method => method.Name)
+            builder.Property(fertilizer => fertilizer.Name)
                 .HasMaxLength(30)
                 .IsRequired();
-            builder.Property(method => method.Description)
+            builder.Property(fertilizer => fertilizer.Description)
                 .HasMaxLength(255);
         });
 
@@ -143,15 +143,15 @@ public class PlantKeeperDbContext : DbContext
                 .HasMaxLength(255);
         });
 
-        modelBuilder.Entity<TreatmentMethod>(builder =>
+        modelBuilder.Entity<Treatment>(builder =>
         {
             // Primary key
-            builder.HasKey(method => method.Id);
+            builder.HasKey(treatment => treatment.Id);
 
-            builder.Property(method => method.Name)
+            builder.Property(treatment => treatment.Name)
                 .HasMaxLength(30)
                 .IsRequired();
-            builder.Property(method => method.Description)
+            builder.Property(treatment => treatment.Description)
                 .HasMaxLength(255);
         });
 
@@ -165,9 +165,9 @@ public class PlantKeeperDbContext : DbContext
                 .WithMany(plant => plant.FertilizationLogs)
                 .HasForeignKey(log => log.PlantId)
                 .IsRequired();
-            builder.HasOne(log => log.FertilizationMethod)
+            builder.HasOne(log => log.FertilizerUsed)
                 .WithMany(method => method.Logs)
-                .HasForeignKey(log => log.MethodId)
+                .HasForeignKey(log => log.FertilizerId)
                 .IsRequired();
 
             builder.Property(log => log.Comments)
@@ -223,9 +223,9 @@ public class PlantKeeperDbContext : DbContext
                 .WithMany(plant => plant.TreatmentLogs)
                 .HasForeignKey(log => log.PlantId)
                 .IsRequired();
-            builder.HasOne(log => log.TreatmentMethod)
+            builder.HasOne(log => log.Treatment)
                 .WithMany(method => method.Logs)
-                .HasForeignKey(log => log.MethodId)
+                .HasForeignKey(log => log.TreatmentId)
                 .IsRequired();
 
             builder.Property(log => log.Comments)

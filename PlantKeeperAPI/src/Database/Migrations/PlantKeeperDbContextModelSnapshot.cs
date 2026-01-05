@@ -22,6 +22,51 @@ namespace PlantKeeperAPI.Database.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("PlantKeeperAPI.Entities.Climate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Humidity")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Precipitation")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Sun")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Temperature")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Wind")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Climates");
+                });
+
             modelBuilder.Entity("PlantKeeperAPI.Entities.FertilizationLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -35,7 +80,7 @@ namespace PlantKeeperAPI.Database.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<Guid>("FertilizationMethodId")
+                    b.Property<Guid>("MethodId")
                         .HasColumnType("char(36)");
 
                     b.Property<Guid>("PlantId")
@@ -43,7 +88,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FertilizationMethodId");
+                    b.HasIndex("MethodId");
 
                     b.HasIndex("PlantId");
 
@@ -70,37 +115,19 @@ namespace PlantKeeperAPI.Database.Migrations
                     b.ToTable("FertilizationMethods");
                 });
 
-            modelBuilder.Entity("PlantKeeperAPI.Entities.Lighting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Lighting");
-                });
-
             modelBuilder.Entity("PlantKeeperAPI.Entities.ObservationLog", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("Notes")
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("varchar(300)");
-
-                    b.Property<DateTime>("ObservationDate")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<Guid>("PlantId")
                         .HasColumnType("char(36)");
@@ -118,38 +145,83 @@ namespace PlantKeeperAPI.Database.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<string>("Comments")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<string>("HumidityConditions")
+                    b.Property<string>("Alias")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<Guid>("LightingTypeId")
+                    b.Property<string>("Comments")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<Guid>("SpeciesId")
                         .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SpeciesId");
+
+                    b.ToTable("Plants");
+                });
+
+            modelBuilder.Entity("PlantKeeperAPI.Entities.PlantSpecies", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("ClimateId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Comments")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<string>("NameInEnglish")
+                    b.Property<string>("NameInSpanish")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<Guid>("SoilTypeId")
+                    b.Property<Guid>("PottingMixId")
                         .HasColumnType("char(36)");
+
+                    b.Property<string>("ScientificName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LightingTypeId");
+                    b.HasIndex("ClimateId");
 
-                    b.HasIndex("SoilTypeId");
+                    b.HasIndex("PottingMixId");
 
-                    b.ToTable("Plants");
+                    b.ToTable("PlantSpecies");
+                });
+
+            modelBuilder.Entity("PlantKeeperAPI.Entities.PottingMix", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PottingMixes");
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.RepottingLog", b =>
@@ -165,32 +237,29 @@ namespace PlantKeeperAPI.Database.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("Dimensions")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Material")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
                     b.Property<Guid>("PlantId")
                         .HasColumnType("char(36)");
+
+                    b.Property<string>("Volume")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("PlantId");
 
                     b.ToTable("RepottingLogs");
-                });
-
-            modelBuilder.Entity("PlantKeeperAPI.Entities.Soil", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Soil");
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.TreatmentLog", b =>
@@ -206,17 +275,17 @@ namespace PlantKeeperAPI.Database.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<Guid>("PlantId")
+                    b.Property<Guid>("MethodId")
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("TreatmentMethodId")
+                    b.Property<Guid>("PlantId")
                         .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PlantId");
+                    b.HasIndex("MethodId");
 
-                    b.HasIndex("TreatmentMethodId");
+                    b.HasIndex("PlantId");
 
                     b.ToTable("TreatmentLogs");
                 });
@@ -254,20 +323,17 @@ namespace PlantKeeperAPI.Database.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<Guid>("KeeperId")
+                    b.Property<Guid>("MethodId")
                         .HasColumnType("char(36)");
 
                     b.Property<Guid>("PlantId")
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("WateringMethodId")
-                        .HasColumnType("char(36)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("PlantId");
+                    b.HasIndex("MethodId");
 
-                    b.HasIndex("WateringMethodId");
+                    b.HasIndex("PlantId");
 
                     b.ToTable("WateringLogs");
                 });
@@ -295,8 +361,8 @@ namespace PlantKeeperAPI.Database.Migrations
             modelBuilder.Entity("PlantKeeperAPI.Entities.FertilizationLog", b =>
                 {
                     b.HasOne("PlantKeeperAPI.Entities.FertilizationMethod", "FertilizationMethod")
-                        .WithMany("FertilizationLogs")
-                        .HasForeignKey("FertilizationMethodId")
+                        .WithMany("Logs")
+                        .HasForeignKey("MethodId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -324,21 +390,32 @@ namespace PlantKeeperAPI.Database.Migrations
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.Plant", b =>
                 {
-                    b.HasOne("PlantKeeperAPI.Entities.Lighting", "LightingType")
+                    b.HasOne("PlantKeeperAPI.Entities.PlantSpecies", "Species")
                         .WithMany("Plants")
-                        .HasForeignKey("LightingTypeId")
+                        .HasForeignKey("SpeciesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("PlantKeeperAPI.Entities.Soil", "SoilType")
-                        .WithMany("Plants")
-                        .HasForeignKey("SoilTypeId")
+                    b.Navigation("Species");
+                });
+
+            modelBuilder.Entity("PlantKeeperAPI.Entities.PlantSpecies", b =>
+                {
+                    b.HasOne("PlantKeeperAPI.Entities.Climate", "Climate")
+                        .WithMany("SpeciesList")
+                        .HasForeignKey("ClimateId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("LightingType");
+                    b.HasOne("PlantKeeperAPI.Entities.PottingMix", "PottingMix")
+                        .WithMany("SpeciesList")
+                        .HasForeignKey("PottingMixId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("SoilType");
+                    b.Navigation("Climate");
+
+                    b.Navigation("PottingMix");
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.RepottingLog", b =>
@@ -354,15 +431,15 @@ namespace PlantKeeperAPI.Database.Migrations
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.TreatmentLog", b =>
                 {
-                    b.HasOne("PlantKeeperAPI.Entities.Plant", "Plant")
-                        .WithMany("TreatmentLogs")
-                        .HasForeignKey("PlantId")
+                    b.HasOne("PlantKeeperAPI.Entities.TreatmentMethod", "TreatmentMethod")
+                        .WithMany("Logs")
+                        .HasForeignKey("MethodId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("PlantKeeperAPI.Entities.TreatmentMethod", "TreatmentMethod")
+                    b.HasOne("PlantKeeperAPI.Entities.Plant", "Plant")
                         .WithMany("TreatmentLogs")
-                        .HasForeignKey("TreatmentMethodId")
+                        .HasForeignKey("PlantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -373,15 +450,15 @@ namespace PlantKeeperAPI.Database.Migrations
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.WateringLog", b =>
                 {
-                    b.HasOne("PlantKeeperAPI.Entities.Plant", "Plant")
-                        .WithMany("WateringLogs")
-                        .HasForeignKey("PlantId")
+                    b.HasOne("PlantKeeperAPI.Entities.WateringMethod", "WateringMethod")
+                        .WithMany("Logs")
+                        .HasForeignKey("MethodId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("PlantKeeperAPI.Entities.WateringMethod", "WateringMethod")
+                    b.HasOne("PlantKeeperAPI.Entities.Plant", "Plant")
                         .WithMany("WateringLogs")
-                        .HasForeignKey("WateringMethodId")
+                        .HasForeignKey("PlantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -390,14 +467,14 @@ namespace PlantKeeperAPI.Database.Migrations
                     b.Navigation("WateringMethod");
                 });
 
-            modelBuilder.Entity("PlantKeeperAPI.Entities.FertilizationMethod", b =>
+            modelBuilder.Entity("PlantKeeperAPI.Entities.Climate", b =>
                 {
-                    b.Navigation("FertilizationLogs");
+                    b.Navigation("SpeciesList");
                 });
 
-            modelBuilder.Entity("PlantKeeperAPI.Entities.Lighting", b =>
+            modelBuilder.Entity("PlantKeeperAPI.Entities.FertilizationMethod", b =>
                 {
-                    b.Navigation("Plants");
+                    b.Navigation("Logs");
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.Plant", b =>
@@ -413,19 +490,24 @@ namespace PlantKeeperAPI.Database.Migrations
                     b.Navigation("WateringLogs");
                 });
 
-            modelBuilder.Entity("PlantKeeperAPI.Entities.Soil", b =>
+            modelBuilder.Entity("PlantKeeperAPI.Entities.PlantSpecies", b =>
                 {
                     b.Navigation("Plants");
                 });
 
+            modelBuilder.Entity("PlantKeeperAPI.Entities.PottingMix", b =>
+                {
+                    b.Navigation("SpeciesList");
+                });
+
             modelBuilder.Entity("PlantKeeperAPI.Entities.TreatmentMethod", b =>
                 {
-                    b.Navigation("TreatmentLogs");
+                    b.Navigation("Logs");
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.WateringMethod", b =>
                 {
-                    b.Navigation("WateringLogs");
+                    b.Navigation("Logs");
                 });
 #pragma warning restore 612, 618
         }
