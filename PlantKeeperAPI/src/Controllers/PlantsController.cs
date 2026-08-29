@@ -25,7 +25,7 @@ public class PlantsController : ControllerBase
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public IEnumerable<PlantDto> List() => _mapper.Map<IEnumerable<PlantDto>>(
-        _dbContext.Plants.OrderBy(plant => plant.Name)
+        _dbContext.Plants.OrderBy(plant => plant.Alias)
     );
 
     [HttpPost]

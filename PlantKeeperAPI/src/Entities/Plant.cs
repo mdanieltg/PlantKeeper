@@ -16,4 +16,6 @@ public class Plant
     public List<WateringLog> WateringLogs { get; } = [];
     public List<FertilizationLog> FertilizationLogs { get; } = [];
     public List<TreatmentLog> TreatmentLogs { get; } = [];
+    public List<GrowthLog> GrowthLogs { get; } = [];
+    public List<PropagationBatch> PropagationBatches { get; } = [];
 }

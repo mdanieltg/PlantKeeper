@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace PlantKeeperAPI.Entities;
 
@@ -10,4 +10,6 @@ public class Treatment
     public string? Description { get; set; }
 
     public List<TreatmentLog> Logs { get; } = [];
+    public List<Pest> Pests { get; } = [];
+    public List<SpeciesTreatmentRecommendation> SpeciesRecommendations { get; } = [];
 }
