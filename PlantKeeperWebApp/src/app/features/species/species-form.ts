@@ -1,15 +1,27 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormField, applyWhen, form, max, maxLength, min, required, submit } from '@angular/forms/signals';
+import {
+  FormField,
+  applyWhen,
+  form,
+  max,
+  maxLength,
+  min,
+  required,
+  submit,
+} from '@angular/forms/signals';
 import { ApiClient } from '../../core/api-client';
 import { messagesOf } from '../../core/field-errors';
 import { ApiFailure, errorsFor, toApiFailure } from '../../core/problem-details';
-import {
-  ClimateDto,
-  InputPlantSpecies,
-  PlantSpeciesDto,
-  PottingMixDto,
-} from '../../core/models';
+import { ClimateDto, InputPlantSpecies, PlantSpeciesDto, PottingMixDto } from '../../core/models';
 import {
   FLOWERING_HABITS,
   FLOWERING_HABIT_LABELS,
@@ -123,9 +135,8 @@ export class SpeciesForm {
 
   protected readonly climates = this.api.listResource<ClimateDto>('climates');
   protected readonly mixes = this.api.listResource<PottingMixDto>('potting-mixes');
-  protected readonly existing = this.api.itemResource<PlantSpeciesDto>(
-    'plant-species',
-    () => this.speciesId(),
+  protected readonly existing = this.api.itemResource<PlantSpeciesDto>('plant-species', () =>
+    this.speciesId(),
   );
 
   protected readonly saving = signal(false);
@@ -148,7 +159,9 @@ export class SpeciesForm {
     required(path.name, { message: 'A common name is required.' });
     maxLength(path.name, 50, { message: 'Name must be 50 characters or fewer.' });
     required(path.scientificName, { message: 'A scientific name is required.' });
-    maxLength(path.scientificName, 100, { message: 'Scientific name must be 100 characters or fewer.' });
+    maxLength(path.scientificName, 100, {
+      message: 'Scientific name must be 100 characters or fewer.',
+    });
     maxLength(path.nameInEnglish, 50, { message: 'English name must be 50 characters or fewer.' });
     required(path.climateId, { message: 'Choose a climate.' });
     required(path.pottingMixId, { message: 'Choose a potting mix.' });
@@ -181,7 +194,8 @@ export class SpeciesForm {
     // apply once the profile is switched on.
     applyWhen(
       path.flowering,
-      ({ valueOf }) => valueOf(path.hasFlowering) && valueOf(path.floweringHabit) !== 'DoesNotFlower',
+      ({ valueOf }) =>
+        valueOf(path.hasFlowering) && valueOf(path.floweringHabit) !== 'DoesNotFlower',
       (flowering) => {
         required(flowering.bloomSeason, { message: 'Bloom season is required.' });
         maxLength(flowering.bloomSeason, 150, { message: 'Must be 150 characters or fewer.' });
@@ -190,7 +204,9 @@ export class SpeciesForm {
         required(flowering.seedViability, { message: 'Seed viability is required.' });
         maxLength(flowering.seedViability, 255, { message: 'Must be 255 characters or fewer.' });
         required(flowering.seedHarvestTiming, { message: 'Seed harvest timing is required.' });
-        maxLength(flowering.seedHarvestTiming, 150, { message: 'Must be 150 characters or fewer.' });
+        maxLength(flowering.seedHarvestTiming, 150, {
+          message: 'Must be 150 characters or fewer.',
+        });
       },
     );
   });

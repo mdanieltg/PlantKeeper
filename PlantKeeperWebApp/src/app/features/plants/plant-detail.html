@@ -2,7 +2,11 @@
   @if (plant.hasValue()) {
     <app-page-header
       [heading]="plant.value().alias"
-      [subheading]="species.hasValue() ? species.value().name + ' · ' + species.value().scientificName : undefined"
+      [subheading]="
+        species.hasValue()
+          ? species.value().name + ' · ' + species.value().scientificName
+          : undefined
+      "
     >
       <a routerLink="/plants" class="btn btn-ghost">All plants</a>
       <a [routerLink]="['/plants', plantId(), 'edit']" class="btn btn-secondary">Edit</a>

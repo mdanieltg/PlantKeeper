@@ -1,10 +1,4 @@
-import {
-  FertilizerCategory,
-  FloweringHabit,
-  LightLevel,
-  Toxicity,
-  WindTolerance,
-} from './enums';
+import { FertilizerCategory, FloweringHabit, LightLevel, Toxicity, WindTolerance } from './enums';
 
 /**
  * Mirrors of the API's read shapes (`*Dto`) and write shapes (`Input*`). Property

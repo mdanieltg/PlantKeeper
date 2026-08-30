@@ -16,7 +16,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       <div class="m-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
         <p class="font-medium">Could not load this data.</p>
         <p class="mt-1 text-red-700">
-          Check that the API is running at <code class="font-mono">{{ apiHost() }}</code>.
+          Check that the API is running at <code class="font-mono">{{ apiHost() }}</code
+          >.
         </p>
       </div>
     } @else {

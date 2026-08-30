@@ -4,7 +4,13 @@
  * lists comes back as a 400. Keep them in step with PlantKeeperAPI/src/Enums/.
  */
 
-export const LIGHT_LEVELS = ['LowLight', 'Shade', 'PartialShade', 'BrightIndirect', 'FullSun'] as const;
+export const LIGHT_LEVELS = [
+  'LowLight',
+  'Shade',
+  'PartialShade',
+  'BrightIndirect',
+  'FullSun',
+] as const;
 export type LightLevel = (typeof LIGHT_LEVELS)[number];
 
 export const WIND_TOLERANCES = ['Low', 'Moderate', 'High'] as const;
@@ -69,6 +75,6 @@ export const TOXICITY_TONE: Record<Toxicity, string> = {
 export function optionsOf<T extends string>(
   values: readonly T[],
   labels: Record<T, string>,
-): ReadonlyArray<{ value: T; label: string }> {
+): readonly { value: T; label: string }[] {
   return values.map((value) => ({ value, label: labels[value] }));
 }

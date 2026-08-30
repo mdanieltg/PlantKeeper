@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /*
  * Design tokens. Tailwind v4 reads @theme and generates utilities from it, so
@@ -38,20 +38,20 @@
   }
 
   /* Every form control in the app shares one look. */
-  input[type="text"],
-  input[type="number"],
-  input[type="date"],
-  input[type="datetime-local"],
+  input[type='text'],
+  input[type='number'],
+  input[type='date'],
+  input[type='datetime-local'],
   textarea,
   select {
     @apply w-full rounded-lg border border-bark-300 bg-white px-3 py-2 text-sm text-bark-900
-           shadow-xs transition outline-none
-           placeholder:text-bark-400
-           focus:border-leaf-500 focus:ring-2 focus:ring-leaf-500/25
-           disabled:cursor-not-allowed disabled:bg-bark-100 disabled:text-bark-500;
+    shadow-xs transition outline-none
+    placeholder:text-bark-400
+    focus:border-leaf-500 focus:ring-2 focus:ring-leaf-500/25
+    disabled:cursor-not-allowed disabled:bg-bark-100 disabled:text-bark-500;
   }
 
-  input[type="checkbox"] {
+  input[type='checkbox'] {
     @apply size-4 rounded border-bark-300 text-leaf-600 accent-leaf-600;
   }
 }
@@ -63,19 +63,23 @@
    */
   .btn {
     @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-3.5 py-2
-           text-sm font-medium whitespace-nowrap transition
-           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf-600
-           disabled:cursor-not-allowed disabled:opacity-50;
+    text-sm font-medium whitespace-nowrap transition
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf-600
+    disabled:cursor-not-allowed disabled:opacity-50;
   }
+
   .btn-primary {
     @apply bg-leaf-600 text-white shadow-xs hover:bg-leaf-700;
   }
+
   .btn-secondary {
     @apply border border-bark-300 bg-white text-bark-700 shadow-xs hover:bg-bark-100;
   }
+
   .btn-ghost {
     @apply text-bark-600 hover:bg-bark-100 hover:text-bark-900;
   }
+
   .btn-danger {
     @apply border border-red-200 bg-white text-red-700 shadow-xs hover:bg-red-50;
   }
@@ -91,16 +95,20 @@
   .table-shell {
     @apply w-full overflow-x-auto;
   }
+
   .table {
     @apply w-full min-w-max border-collapse text-left text-sm;
   }
+
   .table thead th {
     @apply border-b border-bark-200 px-4 py-2.5 text-xs font-semibold tracking-wide
-           text-bark-500 uppercase;
+    text-bark-500 uppercase;
   }
+
   .table tbody td {
     @apply border-b border-bark-100 px-4 py-3 align-top text-bark-800;
   }
+
   .table tbody tr:last-child td {
     @apply border-b-0;
   }

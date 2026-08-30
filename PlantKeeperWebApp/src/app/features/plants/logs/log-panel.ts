@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormField, form, max, maxLength, min, required, submit } from '@angular/forms/signals';
 import { ApiClient } from '../../../core/api-client';
@@ -12,7 +20,10 @@ import { LoadState } from '../../../shared/ui/load-state';
 import { LOG_SPECS, LogFieldSpec, LogSpec, blankLog, toLogPayload } from './log-spec';
 
 type LogRow = Record<string, unknown> & { id: string };
-type NamedRow = { id: string; name: string };
+interface NamedRow {
+  id: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-log-panel',
@@ -65,8 +76,10 @@ export class LogPanel {
             message: `${field.label} must be ${field.maxLength} characters or fewer.`,
           });
         }
-        if (field.min !== undefined) min(target, field.min, { message: `${field.label} cannot be negative.` });
-        if (field.max !== undefined) max(target, field.max, { message: `${field.label} is too large.` });
+        if (field.min !== undefined)
+          min(target, field.min, { message: `${field.label} cannot be negative.` });
+        if (field.max !== undefined)
+          max(target, field.max, { message: `${field.label} is too large.` });
       }
     }
   });
@@ -120,7 +133,10 @@ export class LogPanel {
       this.failure.set(null);
 
       try {
-        await this.api.create(this.spec().path, toLogPayload(this.spec(), this.plantId(), this.model()));
+        await this.api.create(
+          this.spec().path,
+          toLogPayload(this.spec(), this.plantId(), this.model()),
+        );
         this.adding.set(false);
         this.rows.reload();
       } catch (error) {

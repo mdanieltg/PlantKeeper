@@ -139,7 +139,9 @@
             </div>
             <div class="flex justify-between gap-4">
               <dt class="text-bark-500">Seed harvest</dt>
-              <dd class="text-right font-medium text-bark-800">{{ flowering.seedHarvestTiming }}</dd>
+              <dd class="text-right font-medium text-bark-800">
+                {{ flowering.seedHarvestTiming }}
+              </dd>
             </div>
             <div>
               <dt class="text-bark-500">Bloom care</dt>
@@ -159,9 +161,10 @@
         </h2>
         @if (plants.value().length === 0) {
           <p class="text-sm text-bark-500">
-            None yet. <a routerLink="/plants/new" class="font-medium text-leaf-700 hover:underline">
-              Add one
-            </a>.
+            None yet.
+            <a routerLink="/plants/new" class="font-medium text-leaf-700 hover:underline">
+              Add one </a
+            >.
           </p>
         } @else {
           <ul class="flex flex-wrap gap-2">

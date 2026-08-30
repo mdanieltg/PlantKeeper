@@ -8,7 +8,7 @@ export interface LookupFieldSpec {
   /** Mirrors the [StringLength] on the matching Input* model in the API. */
   readonly maxLength?: number;
   readonly hint?: string;
-  readonly options?: ReadonlyArray<{ value: string; label: string }>;
+  readonly options?: readonly { value: string; label: string }[];
 }
 
 export interface LookupSpec {
@@ -26,7 +26,7 @@ export interface LookupSpec {
    * whole dependent tree without complaint. The dialog has to say so.
    */
   readonly cascadeNote: string;
-  readonly columns: ReadonlyArray<{ key: string; label: string }>;
+  readonly columns: readonly { key: string; label: string }[];
   readonly fields: readonly LookupFieldSpec[];
 }
 
@@ -62,7 +62,14 @@ export const LOOKUPS: readonly LookupSpec[] = [
     ],
     fields: [
       { key: 'name', label: 'Name', kind: 'text', required: true, maxLength: 50 },
-      { key: 'temperature', label: 'Temperature', kind: 'text', required: true, maxLength: 50, hint: 'e.g. 10–26 °C' },
+      {
+        key: 'temperature',
+        label: 'Temperature',
+        kind: 'text',
+        required: true,
+        maxLength: 50,
+        hint: 'e.g. 10–26 °C',
+      },
       { key: 'precipitation', label: 'Precipitation', kind: 'text', required: true, maxLength: 50 },
       { key: 'humidity', label: 'Humidity', kind: 'text', required: true, maxLength: 50 },
       { key: 'sun', label: 'Sun', kind: 'text', required: true, maxLength: 50 },
@@ -95,8 +102,7 @@ export const LOOKUPS: readonly LookupSpec[] = [
     singular: 'watering method',
     blurb: 'How water is delivered — referenced by every watering log.',
     icon: '💧',
-    cascadeNote:
-      'Every watering log recorded with this method is deleted with it.',
+    cascadeNote: 'Every watering log recorded with this method is deleted with it.',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'description', label: 'Description' },
@@ -113,8 +119,7 @@ export const LOOKUPS: readonly LookupSpec[] = [
     singular: 'fertilizer',
     blurb: 'Products on the shelf, mapped onto the almanac fertilization matrix.',
     icon: '🧪',
-    cascadeNote:
-      'Every fertilization log using this fertilizer is deleted with it.',
+    cascadeNote: 'Every fertilization log using this fertilizer is deleted with it.',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'npkRatio', label: 'NPK' },
@@ -174,7 +179,10 @@ export function toRecord(spec: LookupSpec, row: Record<string, unknown>): Record
 }
 
 /** Narrows the form record back to a request body, turning '' into null. */
-export function toPayload(spec: LookupSpec, record: Record<string, string>): Record<string, unknown> {
+export function toPayload(
+  spec: LookupSpec,
+  record: Record<string, string>,
+): Record<string, unknown> {
   return Object.fromEntries(
     spec.fields.map((field) => {
       const value = record[field.key] ?? '';

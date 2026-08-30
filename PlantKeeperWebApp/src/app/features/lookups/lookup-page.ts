@@ -24,15 +24,7 @@ type Row = Record<string, unknown> & { id: string };
 
 @Component({
   selector: 'app-lookup-page',
-  imports: [
-    RouterLink,
-    FormField,
-    ConfirmDelete,
-    EmptyState,
-    Field,
-    LoadState,
-    PageHeader,
-  ],
+  imports: [RouterLink, FormField, ConfirmDelete, EmptyState, Field, LoadState, PageHeader],
   templateUrl: './lookup-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -95,7 +87,10 @@ export class LookupPage {
     const value = row[key];
     if (value === null || value === undefined || value === '') return '—';
     if (key === 'category') {
-      return FERTILIZER_CATEGORY_LABELS[value as keyof typeof FERTILIZER_CATEGORY_LABELS] ?? String(value);
+      return (
+        FERTILIZER_CATEGORY_LABELS[value as keyof typeof FERTILIZER_CATEGORY_LABELS] ??
+        String(value)
+      );
     }
     return String(value);
   }

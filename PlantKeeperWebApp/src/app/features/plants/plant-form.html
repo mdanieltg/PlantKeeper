@@ -18,7 +18,9 @@
     }
 
     @if (species.value().length === 0) {
-      <p class="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      <p
+        class="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+      >
         No species exist yet, and a plant must belong to one.
         <a routerLink="/species/new" class="font-medium underline">Create a species first.</a>
       </p>
@@ -34,7 +36,11 @@
         <input id="alias" type="text" [formField]="plant.alias" />
       </app-field>
 
-      <app-field label="Species" controlId="speciesId" [errors]="errorsOf(plant.speciesId, 'speciesId')">
+      <app-field
+        label="Species"
+        controlId="speciesId"
+        [errors]="errorsOf(plant.speciesId, 'speciesId')"
+      >
         <select id="speciesId" [formField]="plant.speciesId">
           <option value="" disabled>Select a species…</option>
           @for (entry of species.value(); track entry.id) {

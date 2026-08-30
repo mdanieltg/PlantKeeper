@@ -20,12 +20,17 @@ export interface LogSpec {
   readonly title: string;
   readonly singular: string;
   readonly icon: string;
-  readonly columns: ReadonlyArray<{ key: string; label: string }>;
+  readonly columns: readonly { key: string; label: string }[];
   readonly fields: readonly LogFieldSpec[];
 }
 
 const DATE: LogFieldSpec = { key: 'date', label: 'Date', kind: 'datetime', required: true };
-const COMMENTS: LogFieldSpec = { key: 'comments', label: 'Comments', kind: 'textarea', maxLength: 255 };
+const COMMENTS: LogFieldSpec = {
+  key: 'comments',
+  label: 'Comments',
+  kind: 'textarea',
+  maxLength: 255,
+};
 
 /**
  * The six log types. All are flat collections filtered by `?plantId=`, so one panel
@@ -120,9 +125,30 @@ export const LOG_SPECS: readonly LogSpec[] = [
     ],
     fields: [
       DATE,
-      { key: 'dimensions', label: 'Dimensions', kind: 'text', required: true, maxLength: 50, hint: 'e.g. 30 × 25 cm' },
-      { key: 'volume', label: 'Volume', kind: 'text', required: true, maxLength: 30, hint: 'e.g. 12 L' },
-      { key: 'material', label: 'Material', kind: 'text', required: true, maxLength: 50, hint: 'e.g. Barro' },
+      {
+        key: 'dimensions',
+        label: 'Dimensions',
+        kind: 'text',
+        required: true,
+        maxLength: 50,
+        hint: 'e.g. 30 × 25 cm',
+      },
+      {
+        key: 'volume',
+        label: 'Volume',
+        kind: 'text',
+        required: true,
+        maxLength: 30,
+        hint: 'e.g. 12 L',
+      },
+      {
+        key: 'material',
+        label: 'Material',
+        kind: 'text',
+        required: true,
+        maxLength: 50,
+        hint: 'e.g. Barro',
+      },
       COMMENTS,
     ],
   },

@@ -35,9 +35,8 @@ export class SpeciesDetail {
   protected readonly toxicityTone = TOXICITY_TONE;
   protected readonly habitLabels = FLOWERING_HABIT_LABELS;
 
-  protected readonly species = this.api.itemResource<PlantSpeciesDto>(
-    'plant-species',
-    () => this.speciesId(),
+  protected readonly species = this.api.itemResource<PlantSpeciesDto>('plant-species', () =>
+    this.speciesId(),
   );
   protected readonly climates = this.api.listResource<ClimateDto>('climates');
   protected readonly mixes = this.api.listResource<PottingMixDto>('potting-mixes');
