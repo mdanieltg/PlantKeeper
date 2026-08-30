@@ -625,6 +625,46 @@ would make that cheap.
 
 ---
 
+### Containers
+
+`ci/` holds the container build, laid out to match the convention used in the Wallet
+repository: `backend.dockerfile`, `frontend.dockerfile`, `nginx.conf`, a development
+`docker-compose.yml` and a production `docker-compose.prod.yml`, with secrets in a
+gitignored `.env`.
+
+Both dockerfiles build with the **repository root** as context. The backend is a
+two-stage `sdk:10.0` → `aspnet:10.0` build listening on 8080, exposed to the compose
+network but never published. The frontend builds with `node:24-alpine` and is served by
+`nginx:alpine`, which does SPA `try_files` fallback and proxies `/api` to
+`http://backend:8080`.
+
+That proxy is what makes the production Angular build correct without further work:
+`environment.ts` leaves `apiHost` empty, so the browser calls `/api/...` same-origin and
+never crosses an origin boundary — which matters because **the API registers no CORS
+policy outside Development**.
+
+Three things about the stack are deliberate and easy to get wrong:
+
+- **nginx copies `dist/PlantKeeperWebApp/browser`,** not `dist`. The Angular application
+  builder nests its output; copying the parent serves a directory listing.
+- **MySQL is not published to the host.** It is reachable only as `db:3306` inside
+  `plantkeeper-net`, so anything touching the database — `dotnet ef` included — must run
+  inside that network.
+- **`db` has a healthcheck and the backend waits on `service_healthy`.** Plain
+  `depends_on` only orders startup, and `UseMySql(..., ServerVersion.AutoDetect(...))`
+  opens a connection while services are being registered. A backend that wins the race
+  fails on its first request instead of retrying.
+
+**Migrations are not automated.** A fresh volume produces an empty schema, and nothing
+in `Program.cs` calls `Migrate()`. `ci/README.md` carries the one command that works;
+note that it passes the connection string as `ConnectionStrings__Dev` rather than
+`--connection`, because EF resolves the DbContext through the application's own service
+provider and `AddDatabase` calls `AutoDetect` before `--connection` would ever apply.
+
+Production mirrors Wallet: prebuilt images pulled from `localhost:5000`, `env_file`,
+`restart: unless-stopped`, an external `app-network`, and **no database service** — the
+deployment is expected to point at a MySQL that already exists.
+
 ## 5. Open decisions
 
 1. **Seeding.** How does the almanac's content get into the database — `HasData` in a

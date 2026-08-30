@@ -1,0 +1,62 @@
+name: plantkeeper
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PWD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-plants}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    # Reachable as db:3306 from inside the network only - nothing is published to the
+    # host. Add a ports mapping if you need Rider or a mysql client to connect.
+    #expose:
+      #- "3306"
+    ports:
+      - "127.0.0.1:3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PWD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - plantkeeper-net
+
+  backend:
+    build:
+      context: ..
+      dockerfile: ci/backend.dockerfile
+    expose:
+      - "8080"
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      # Pinned: DatabaseServiceExtensions picks the connection string key from the
+      # environment name, so Development is what makes ConnectionStrings__Dev the one
+      # it reads.
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Dev: ${CONNECTION_STRING}
+    depends_on:
+      db:
+        # UseMySql calls ServerVersion.AutoDetect, which opens a connection as soon as
+        # the DbContext is first built. Ordering alone is not enough - it has to be up.
+        condition: service_healthy
+    networks:
+      - plantkeeper-net
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: ci/frontend.dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - plantkeeper-net
+
+volumes:
+  mysql-data:
+
+networks:
+  plantkeeper-net:
+    driver: bridge

@@ -1,0 +1,35 @@
+name: plantkeeper
+
+services:
+  backend:
+    image: localhost:5000/plantkeeper-backend:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Production: ${CONNECTION_STRING}
+    expose:
+      - "8080"
+    networks:
+      - internal
+      - app-network
+
+  frontend:
+    image: localhost:5000/plantkeeper-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5004:80"
+    depends_on:
+      - backend
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+  app-network:
+    external: true
+
+# vim: set ts=2 sts=2 sw=2 et:

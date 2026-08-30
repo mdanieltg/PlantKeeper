@@ -1,0 +1,21 @@
+# The image builds use the repository root as their context, so everything below would
+# otherwise be uploaded to the daemon on every build.
+.git
+.gitignore
+.idea
+.vs
+.vscode
+.claude
+
+**/node_modules
+**/dist
+**/bin
+**/obj
+**/.angular
+
+# Never bake secrets into an image layer.
+ci/.env
+
+# Host-side database files and local scratch.
+mysql-data
+publish
