@@ -1,0 +1,192 @@
+<app-load-state [loading]="species.isLoading()" [failed]="!!species.error()" [apiHost]="apiHost">
+  @if (species.hasValue()) {
+    @let entry = species.value();
+
+    <app-page-header [heading]="entry.name" [subheading]="entry.scientificName">
+      <a routerLink="/species" class="btn btn-ghost">All species</a>
+      <a [routerLink]="['/species', speciesId(), 'edit']" class="btn btn-secondary">Edit</a>
+      <button type="button" class="btn btn-danger" (click)="pendingDelete.set(true)">Delete</button>
+    </app-page-header>
+
+    @if (failure(); as problem) {
+      <p class="mb-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        {{ problem.message }}
+      </p>
+    }
+
+    <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
+      <section class="card p-6">
+        <h2 class="mb-4 text-sm font-semibold text-bark-900">Overview</h2>
+        <dl class="grid gap-3 text-sm">
+          @if (entry.nameInEnglish) {
+            <div class="flex justify-between gap-4">
+              <dt class="text-bark-500">English name</dt>
+              <dd class="text-right font-medium text-bark-800">{{ entry.nameInEnglish }}</dd>
+            </div>
+          }
+          <div class="flex justify-between gap-4">
+            <dt class="text-bark-500">Climate</dt>
+            <dd class="text-right font-medium text-bark-800">{{ climateName() }}</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-bark-500">Potting mix</dt>
+            <dd class="text-right font-medium text-bark-800">{{ mixName() }}</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-bark-500">Flowering habit</dt>
+            <dd class="text-right font-medium text-bark-800">
+              {{ habitLabels[entry.floweringHabit] }}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-bark-500">Fertilization</dt>
+            <dd class="text-right font-medium text-bark-800">{{ entry.fertilizationFrequency }}</dd>
+          </div>
+          @if (entry.fertilizationNotes) {
+            <div>
+              <dt class="text-bark-500">Fertilization notes</dt>
+              <dd class="mt-0.5 text-bark-800">{{ entry.fertilizationNotes }}</dd>
+            </div>
+          }
+          @if (entry.comments) {
+            <div>
+              <dt class="text-bark-500">Comments</dt>
+              <dd class="mt-0.5 text-bark-800">{{ entry.comments }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="mb-4 text-sm font-semibold text-bark-900">Care</h2>
+        <dl class="grid gap-3 text-sm">
+          <div class="flex justify-between gap-4">
+            <dt class="text-bark-500">Light</dt>
+            <dd class="text-right font-medium text-bark-800">
+              {{ lightLabels[entry.care.lightMin] }} – {{ lightLabels[entry.care.lightMax] }}
+            </dd>
+          </div>
+          @if (entry.care.lightNotes) {
+            <p class="-mt-1 text-xs text-bark-500">{{ entry.care.lightNotes }}</p>
+          }
+          <div class="flex justify-between gap-4">
+            <dt class="text-bark-500">Temperature</dt>
+            <dd class="text-right font-medium text-bark-800">
+              {{ entry.care.minTemperatureCelsius }}–{{ entry.care.maxTemperatureCelsius }} °C
+            </dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-bark-500">Soil pH</dt>
+            <dd class="text-right font-medium text-bark-800">
+              {{ entry.care.soilPhMin }}–{{ entry.care.soilPhMax }}
+            </dd>
+          </div>
+          @if (entry.care.soilPhNotes) {
+            <p class="-mt-1 text-xs text-bark-500">{{ entry.care.soilPhNotes }}</p>
+          }
+          <div class="flex justify-between gap-4">
+            <dt class="text-bark-500">Wind tolerance</dt>
+            <dd class="text-right font-medium text-bark-800">
+              {{ windLabels[entry.care.windTolerance] }}
+            </dd>
+          </div>
+          @if (entry.care.windToleranceNotes) {
+            <p class="-mt-1 text-xs text-bark-500">{{ entry.care.windToleranceNotes }}</p>
+          }
+          <div>
+            <dt class="text-bark-500">Watering</dt>
+            <dd class="mt-0.5 text-bark-800">{{ entry.care.wateringRequirement }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="mb-4 text-sm font-semibold text-bark-900">Toxicity</h2>
+        <div class="grid gap-4 text-sm">
+          <div>
+            <div class="flex items-center justify-between gap-4">
+              <span class="text-bark-500">To humans</span>
+              <app-badge [tone]="toxicityTone[entry.toxicity.toHumans]">
+                {{ toxicityLabels[entry.toxicity.toHumans] }}
+              </app-badge>
+            </div>
+            @if (entry.toxicity.toHumansNotes) {
+              <p class="mt-1 text-xs text-bark-500">{{ entry.toxicity.toHumansNotes }}</p>
+            }
+          </div>
+          <div>
+            <div class="flex items-center justify-between gap-4">
+              <span class="text-bark-500">To pets</span>
+              <app-badge [tone]="toxicityTone[entry.toxicity.toPets]">
+                {{ toxicityLabels[entry.toxicity.toPets] }}
+              </app-badge>
+            </div>
+            @if (entry.toxicity.toPetsNotes) {
+              <p class="mt-1 text-xs text-bark-500">{{ entry.toxicity.toPetsNotes }}</p>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- Absent by design when the species does not flower: no row exists. -->
+      @if (entry.flowering; as flowering) {
+        <section class="card p-6">
+          <h2 class="mb-4 text-sm font-semibold text-bark-900">Flowering</h2>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between gap-4">
+              <dt class="text-bark-500">Bloom season</dt>
+              <dd class="text-right font-medium text-bark-800">{{ flowering.bloomSeason }}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-bark-500">Seed harvest</dt>
+              <dd class="text-right font-medium text-bark-800">{{ flowering.seedHarvestTiming }}</dd>
+            </div>
+            <div>
+              <dt class="text-bark-500">Bloom care</dt>
+              <dd class="mt-0.5 text-bark-800">{{ flowering.bloomCareNotes }}</dd>
+            </div>
+            <div>
+              <dt class="text-bark-500">Seed viability</dt>
+              <dd class="mt-0.5 text-bark-800">{{ flowering.seedViability }}</dd>
+            </div>
+          </dl>
+        </section>
+      }
+
+      <section class="card p-6 lg:col-span-2">
+        <h2 class="mb-4 text-sm font-semibold text-bark-900">
+          Plants of this species ({{ plants.value().length }})
+        </h2>
+        @if (plants.value().length === 0) {
+          <p class="text-sm text-bark-500">
+            None yet. <a routerLink="/plants/new" class="font-medium text-leaf-700 hover:underline">
+              Add one
+            </a>.
+          </p>
+        } @else {
+          <ul class="flex flex-wrap gap-2">
+            @for (plant of plants.value(); track plant.id) {
+              <li>
+                <a
+                  [routerLink]="['/plants', plant.id]"
+                  class="inline-flex rounded-lg border border-bark-200 px-3 py-1.5 text-sm text-bark-700 transition hover:border-leaf-300 hover:bg-leaf-50"
+                >
+                  {{ plant.alias }}
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
+
+    @if (pendingDelete()) {
+      <app-confirm-delete
+        subject="species"
+        cascadeNote="Its care, toxicity and flowering profiles go with it — and so does every plant of this species, along with all of their logs."
+        (confirmed)="confirmDelete()"
+        (cancelled)="pendingDelete.set(false)"
+      />
+    }
+  }
+</app-load-state>

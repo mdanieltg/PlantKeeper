@@ -1,0 +1,314 @@
+<app-page-header
+  [heading]="editing() ? 'Edit species' : 'New species'"
+  subheading="Care and toxicity profiles are part of the species itself — the database cannot enforce their presence, so they are written together."
+>
+  <a routerLink="/species" class="btn btn-ghost">Cancel</a>
+</app-page-header>
+
+<app-load-state
+  [loading]="climates.isLoading() || mixes.isLoading() || existing.isLoading()"
+  [failed]="!!existing.error()"
+  [apiHost]="apiHost"
+>
+  @if (failure(); as problem) {
+    <p class="mb-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+      {{ problem.message }}
+    </p>
+  }
+
+  @if (missingPrerequisites()) {
+    <p class="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      A species needs both a climate and a potting mix, and at least one of those tables is
+      empty.
+      <a routerLink="/lookups" class="font-medium underline">Add reference data first.</a>
+    </p>
+  }
+
+  <div class="grid max-w-4xl gap-6">
+    <!-- Identity -->
+    <section class="card p-6">
+      <h2 class="mb-4 text-sm font-semibold text-bark-900">Identity</h2>
+      <div class="grid gap-5 sm:grid-cols-2">
+        <app-field label="Common name" [errors]="errorsOf(species.name, 'name')">
+          <input type="text" [formField]="species.name" />
+        </app-field>
+
+        <app-field
+          label="Scientific name"
+          [errors]="errorsOf(species.scientificName, 'scientificName')"
+        >
+          <input type="text" [formField]="species.scientificName" />
+        </app-field>
+
+        <app-field
+          label="English name"
+          [optional]="true"
+          hint="Only when it differs from the common name."
+          [errors]="errorsOf(species.nameInEnglish, 'nameInEnglish')"
+        >
+          <input type="text" [formField]="species.nameInEnglish" />
+        </app-field>
+
+        <app-field label="Climate" [errors]="errorsOf(species.climateId, 'climateId')">
+          <select [formField]="species.climateId">
+            <option value="" disabled>Select a climate…</option>
+            @for (climate of climates.value(); track climate.id) {
+              <option [value]="climate.id">{{ climate.name }}</option>
+            }
+          </select>
+        </app-field>
+
+        <app-field label="Potting mix" [errors]="errorsOf(species.pottingMixId, 'pottingMixId')">
+          <select [formField]="species.pottingMixId">
+            <option value="" disabled>Select a mix…</option>
+            @for (mix of mixes.value(); track mix.id) {
+              <option [value]="mix.id">{{ mix.name }}</option>
+            }
+          </select>
+        </app-field>
+
+        <app-field
+          label="Comments"
+          [optional]="true"
+          wrapperClass="sm:col-span-2"
+          [errors]="errorsOf(species.comments, 'comments')"
+        >
+          <textarea rows="2" [formField]="species.comments"></textarea>
+        </app-field>
+      </div>
+    </section>
+
+    <!-- Care -->
+    <section class="card p-6">
+      <h2 class="text-sm font-semibold text-bark-900">Care</h2>
+      <p class="mt-1 mb-4 text-sm text-bark-500">
+        Required. A blank here is an unresearched value, not an absent one.
+      </p>
+
+      <div class="grid gap-5 sm:grid-cols-2">
+        <app-field label="Light — minimum" [errors]="errorsOf(species.care.lightMin)">
+          <select [formField]="species.care.lightMin">
+            @for (option of lightOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </app-field>
+
+        <app-field label="Light — maximum" [errors]="errorsOf(species.care.lightMax)">
+          <select [formField]="species.care.lightMax">
+            @for (option of lightOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </app-field>
+
+        <app-field
+          label="Light notes"
+          [optional]="true"
+          hint="Qualifiers the scale cannot hold, e.g. “6–8 h”."
+          wrapperClass="sm:col-span-2"
+          [errors]="errorsOf(species.care.lightNotes)"
+        >
+          <input type="text" [formField]="species.care.lightNotes" />
+        </app-field>
+
+        <app-field
+          label="Minimum temperature (°C)"
+          [errors]="errorsOf(species.care.minTemperatureCelsius)"
+        >
+          <input type="number" [formField]="species.care.minTemperatureCelsius" />
+        </app-field>
+
+        <app-field
+          label="Maximum temperature (°C)"
+          [errors]="errorsOf(species.care.maxTemperatureCelsius)"
+        >
+          <input type="number" [formField]="species.care.maxTemperatureCelsius" />
+        </app-field>
+
+        <app-field
+          label="Watering requirement"
+          wrapperClass="sm:col-span-2"
+          [errors]="errorsOf(species.care.wateringRequirement)"
+        >
+          <input type="text" [formField]="species.care.wateringRequirement" />
+        </app-field>
+
+        <app-field label="Soil pH — minimum" [errors]="errorsOf(species.care.soilPhMin)">
+          <input type="number" step="0.1" [formField]="species.care.soilPhMin" />
+        </app-field>
+
+        <app-field label="Soil pH — maximum" [errors]="errorsOf(species.care.soilPhMax)">
+          <input type="number" step="0.1" [formField]="species.care.soilPhMax" />
+        </app-field>
+
+        <app-field
+          label="Soil pH notes"
+          [optional]="true"
+          hint="Caveats the range cannot express, e.g. “tolerates up to 8.0”."
+          wrapperClass="sm:col-span-2"
+          [errors]="errorsOf(species.care.soilPhNotes)"
+        >
+          <input type="text" [formField]="species.care.soilPhNotes" />
+        </app-field>
+
+        <app-field label="Wind tolerance" [errors]="errorsOf(species.care.windTolerance)">
+          <select [formField]="species.care.windTolerance">
+            @for (option of windOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </app-field>
+
+        <app-field
+          label="Wind notes"
+          [optional]="true"
+          [errors]="errorsOf(species.care.windToleranceNotes)"
+        >
+          <input type="text" [formField]="species.care.windToleranceNotes" />
+        </app-field>
+      </div>
+    </section>
+
+    <!-- Toxicity -->
+    <section class="card p-6">
+      <h2 class="text-sm font-semibold text-bark-900">Toxicity</h2>
+      <p class="mt-1 mb-4 text-sm text-bark-500">
+        Required. An unresearched species must never read as harmless.
+      </p>
+
+      <div class="grid gap-5 sm:grid-cols-2">
+        <app-field label="To humans" [errors]="errorsOf(species.toxicity.toHumans)">
+          <select [formField]="species.toxicity.toHumans">
+            @for (option of toxicityOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </app-field>
+
+        <app-field
+          label="Notes for humans"
+          [optional]="true"
+          [errors]="errorsOf(species.toxicity.toHumansNotes)"
+        >
+          <input type="text" [formField]="species.toxicity.toHumansNotes" />
+        </app-field>
+
+        <app-field label="To pets" [errors]="errorsOf(species.toxicity.toPets)">
+          <select [formField]="species.toxicity.toPets">
+            @for (option of toxicityOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </app-field>
+
+        <app-field
+          label="Notes for pets"
+          [optional]="true"
+          [errors]="errorsOf(species.toxicity.toPetsNotes)"
+        >
+          <input type="text" [formField]="species.toxicity.toPetsNotes" />
+        </app-field>
+      </div>
+    </section>
+
+    <!-- Fertilization and flowering -->
+    <section class="card p-6">
+      <h2 class="mb-4 text-sm font-semibold text-bark-900">Fertilization &amp; flowering</h2>
+
+      <div class="grid gap-5 sm:grid-cols-2">
+        <app-field
+          label="Fertilization frequency"
+          [errors]="errorsOf(species.fertilizationFrequency, 'fertilizationFrequency')"
+        >
+          <input type="text" [formField]="species.fertilizationFrequency" />
+        </app-field>
+
+        <app-field
+          label="Fertilization notes"
+          [optional]="true"
+          [errors]="errorsOf(species.fertilizationNotes, 'fertilizationNotes')"
+        >
+          <input type="text" [formField]="species.fertilizationNotes" />
+        </app-field>
+
+        <app-field
+          label="Flowering habit"
+          wrapperClass="sm:col-span-2"
+          [errors]="errorsOf(species.floweringHabit, 'floweringHabit')"
+        >
+          <select [formField]="species.floweringHabit">
+            @for (option of habitOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </app-field>
+      </div>
+
+      <div class="mt-5 border-t border-bark-100 pt-5">
+        @if (floweringAllowed()) {
+          <label class="flex items-center gap-2.5 text-sm font-medium text-bark-800">
+            <input type="checkbox" [formField]="species.hasFlowering" />
+            Record a flowering profile
+          </label>
+          <p class="mt-1.5 text-xs text-bark-500">
+            Optional as a whole, but complete when present — every field below is required
+            once this is on.
+          </p>
+        } @else {
+          <p class="text-sm text-bark-500">
+            This species is marked <strong>does not flower</strong>, so it carries no flowering
+            profile. The API rejects one with a 422.
+          </p>
+        }
+
+        @for (message of errorsOf(species.hasFlowering, 'flowering'); track message) {
+          <p class="mt-2 text-xs font-medium text-red-600">{{ message }}</p>
+        }
+
+        @if (floweringAllowed() && species.hasFlowering().value()) {
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            <app-field label="Bloom season" [errors]="errorsOf(species.flowering.bloomSeason)">
+              <input type="text" [formField]="species.flowering.bloomSeason" />
+            </app-field>
+
+            <app-field
+              label="Seed harvest timing"
+              [errors]="errorsOf(species.flowering.seedHarvestTiming)"
+            >
+              <input type="text" [formField]="species.flowering.seedHarvestTiming" />
+            </app-field>
+
+            <app-field
+              label="Bloom care notes"
+              wrapperClass="sm:col-span-2"
+              [errors]="errorsOf(species.flowering.bloomCareNotes)"
+            >
+              <textarea rows="2" [formField]="species.flowering.bloomCareNotes"></textarea>
+            </app-field>
+
+            <app-field
+              label="Seed viability"
+              wrapperClass="sm:col-span-2"
+              [errors]="errorsOf(species.flowering.seedViability)"
+            >
+              <textarea rows="2" [formField]="species.flowering.seedViability"></textarea>
+            </app-field>
+          </div>
+        }
+      </div>
+    </section>
+
+    <div class="flex justify-end gap-2 pb-4">
+      <a routerLink="/species" class="btn btn-secondary">Cancel</a>
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="saving() || missingPrerequisites()"
+        (click)="save()"
+      >
+        {{ saving() ? 'Saving…' : editing() ? 'Save changes' : 'Create species' }}
+      </button>
+    </div>
+  </div>
+</app-load-state>

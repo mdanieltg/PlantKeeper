@@ -1,0 +1,131 @@
+@if (spec(); as active) {
+  <app-page-header [heading]="active.title" [subheading]="active.blurb">
+    <a routerLink="/lookups" class="btn btn-ghost">All reference data</a>
+    <button type="button" class="btn btn-primary" (click)="startCreate()">
+      New {{ active.singular }}
+    </button>
+  </app-page-header>
+
+  @if (panelOpen()) {
+    <section class="card mb-6 p-5">
+      <h2 class="mb-4 text-sm font-semibold text-bark-900">
+        {{ editingId() ? 'Edit' : 'New' }} {{ active.singular }}
+      </h2>
+
+      @if (failure(); as problem) {
+        <p class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {{ problem.message }}
+        </p>
+      }
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        @for (field of active.fields; track field.key) {
+          <app-field
+            [label]="field.label"
+            [hint]="field.hint"
+            [optional]="!field.required"
+            [errors]="errorsOf(field)"
+            [wrapperClass]="field.kind === 'textarea' ? 'sm:col-span-2' : ''"
+          >
+            @switch (field.kind) {
+              @case ('textarea') {
+                <textarea rows="2" [formField]="fieldOf(field.key)"></textarea>
+              }
+              @case ('select') {
+                <select [formField]="fieldOf(field.key)">
+                  @for (option of field.options; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              }
+              @default {
+                <input type="text" [formField]="fieldOf(field.key)" />
+              }
+            }
+          </app-field>
+        }
+      </div>
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button type="button" class="btn btn-secondary" (click)="closePanel()">Cancel</button>
+        <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">
+          {{ saving() ? 'Saving…' : 'Save' }}
+        </button>
+      </div>
+    </section>
+  }
+
+  <section class="card overflow-hidden">
+    <app-load-state [loading]="rows.isLoading()" [failed]="!!rows.error()" [apiHost]="apiHost">
+      @if (rows.value().length === 0) {
+        <app-empty-state
+          [icon]="active.icon"
+          [heading]="'No ' + active.title.toLowerCase() + ' yet'"
+          [message]="active.blurb + ' Add the first one to get started.'"
+        >
+          <button type="button" class="btn btn-primary" (click)="startCreate()">
+            New {{ active.singular }}
+          </button>
+        </app-empty-state>
+      } @else {
+        <div class="table-shell">
+          <table class="table">
+            <thead>
+              <tr>
+                @for (column of active.columns; track column.key) {
+                  <th>{{ column.label }}</th>
+                }
+                <th class="w-0"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows.value(); track row.id) {
+                <tr class="hover:bg-bark-50">
+                  @for (column of active.columns; track column.key) {
+                    <td [class]="column.key === 'name' ? 'font-medium text-bark-900' : ''">
+                      {{ display(row, column.key) }}
+                    </td>
+                  }
+                  <td class="text-right whitespace-nowrap">
+                    <button type="button" class="btn btn-ghost" (click)="startEdit(row)">Edit</button>
+                    <button type="button" class="btn btn-ghost text-red-600 hover:bg-red-50"
+                            (click)="pendingDelete.set(row)">
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </app-load-state>
+  </section>
+
+  @if (pendingDelete(); as row) {
+    <app-confirm-delete
+      [subject]="active.singular"
+      [cascadeNote]="active.cascadeNote"
+      (confirmed)="confirmDelete()"
+      (cancelled)="pendingDelete.set(null)"
+    />
+  }
+} @else {
+  <app-page-header
+    heading="Reference data"
+    subheading="Lookup tables the rest of the app depends on. A species needs a climate and a potting mix; logs need a method, fertilizer or treatment."
+  />
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    @for (entry of all; track entry.slug) {
+      <a
+        [routerLink]="['/lookups', entry.slug]"
+        class="card block p-5 transition hover:border-leaf-300 hover:shadow-sm"
+      >
+        <span class="text-2xl" aria-hidden="true">{{ entry.icon }}</span>
+        <h2 class="mt-3 font-medium text-bark-900">{{ entry.title }}</h2>
+        <p class="mt-1 text-sm text-bark-500">{{ entry.blurb }}</p>
+      </a>
+    }
+  </div>
+}

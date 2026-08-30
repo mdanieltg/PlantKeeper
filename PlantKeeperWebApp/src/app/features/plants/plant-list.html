@@ -1,0 +1,50 @@
+<app-page-header
+  heading="Plants"
+  subheading="Every individual in the collection. A plant is one pot; the species holds its care profile."
+>
+  <a routerLink="/plants/new" class="btn btn-primary">New plant</a>
+</app-page-header>
+
+<app-load-state [loading]="loading()" [failed]="!!plants.error()" [apiHost]="apiHost">
+  @if (plants.value().length === 0) {
+    <div class="card">
+      <app-empty-state
+        icon="🪴"
+        heading="No plants yet"
+        [message]="
+          noSpecies()
+            ? 'A plant belongs to a species, and no species exist yet. Add a species first.'
+            : 'Add the first plant to start keeping logs against it.'
+        "
+      >
+        @if (noSpecies()) {
+          <a routerLink="/species/new" class="btn btn-primary">Add a species</a>
+        } @else {
+          <a routerLink="/plants/new" class="btn btn-primary">New plant</a>
+        }
+      </app-empty-state>
+    </div>
+  } @else {
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      @for (plant of plants.value(); track plant.id) {
+        <a
+          [routerLink]="['/plants', plant.id]"
+          class="card block p-5 transition hover:border-leaf-300 hover:shadow-sm"
+        >
+          <h2 class="font-medium text-bark-900">{{ plant.alias }}</h2>
+
+          @if (speciesById().get(plant.speciesId); as species) {
+            <p class="mt-1 text-sm text-bark-600">{{ species.name }}</p>
+            <p class="text-xs text-bark-400 italic">{{ species.scientificName }}</p>
+          } @else {
+            <p class="mt-1 text-sm text-bark-400">Unknown species</p>
+          }
+
+          @if (plant.comments) {
+            <p class="mt-3 line-clamp-2 text-sm text-bark-500">{{ plant.comments }}</p>
+          }
+        </a>
+      }
+    </div>
+  }
+</app-load-state>

@@ -1,9 +1,14 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
-import { provideHttpClient } from "@angular/common/http";
-
+import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { provideHttpClient, withFetch } from '@angular/common/http';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideZoneChangeDetection({ eventCoalescing: true }), provideRouter(routes), provideHttpClient()]
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    // withComponentInputBinding lets route params arrive as signal inputs on the
+    // component, which keeps the detail screens free of ActivatedRoute plumbing.
+    provideRouter(routes, withComponentInputBinding()),
+    provideHttpClient(withFetch()),
+  ],
 };

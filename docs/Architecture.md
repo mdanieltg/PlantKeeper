@@ -497,25 +497,108 @@ fails the boot instead of returning empty fields.
 
 ## 3. Frontend
 
-**Placeholder.** This section will be filled in when a frontend is built.
+`PlantKeeperWebApp/` is an Angular 22 SPA styled with Tailwind 4. It replaced — rather
+than migrated — an Angular 19 scaffold whose `Keeper` entity and `/api/keepers` calls
+had been dead since `7c6bb9b`.
 
-`PlantKeeperWebApp/` currently holds an Angular 18 scaffold that predates the current
-schema and does not reflect it. It is a standalone-component app — routes bound
-directly to components in `app.routes.ts`, no NgModules — with feature folders per
-resource, each holding a plain interface, a list component, and a details component.
-All HTTP goes through a single root-provided `PlantKeeperService` that builds URLs from
-`environment.apiHost` (`http://localhost:5033` in development).
+### 3.1 Stack
 
-Its contract is stale in the same three ways the API's own DTOs are: `Plant` is
-`{ id, name, care }`, a `Keeper` interface and `/keepers` routes still exist for an
-entity deleted from the backend, and `WateringLog` still carries `keeperId`. Treat it
-as a reference for the intended shape of a client, not as a working one.
+| Component | Version | Notes |
+|---|---|---|
+| Angular | 22.1 | zoneless, `OnPush` by default, 2025 file naming |
+| TypeScript | 6.0 | `strictTemplates` implicit in v22 |
+| Tailwind CSS | 4.3 | no config file; `@theme` tokens in `styles.css` |
+| Forms | Signal Forms | `@angular/forms/signals`, stable in v22 |
+| Tests | Vitest 4 | replaced Karma/Jasmine |
 
-When the real frontend arrives, this section should cover component and state
-architecture, the API client layer, routing, and how the shared contract is kept in
-sync with the backend — the failure mode this repository has demonstrated twice.
+Four v22 defaults drive the design. **Zoneless** means no `zone.js` at all, so state has
+to be signals. **`OnPush` everywhere** means mutating a plain object simply will not
+re-render. **Vitest** replaces the old Karma harness. And **Signal Forms** is stable,
+which made it a real choice rather than a preview.
 
----
+### 3.2 Layout
+
+```
+src/app/
+  app.ts | app.html | app.config.ts | app.routes.ts
+  core/          api-client, models, enums, problem-details, field-errors
+  shared/ui/     page-header, field, badge, empty-state, load-state, confirm-delete
+  features/
+    plants/      plant-list, plant-detail, plant-form, logs/
+    species/     species-list, species-detail, species-form
+    lookups/     lookup-page + lookup-spec
+```
+
+Every feature route is lazily loaded via `loadComponent`, so the initial bundle carries
+only the shell.
+
+### 3.3 Data access
+
+Reads and writes are split, because Angular splits them.
+
+- **`httpResource` for reads.** It fetches eagerly, exposes `value()`, `isLoading()`,
+  `error()` and `hasValue()` as signals, and cancels in-flight requests when a
+  dependency changes. `ApiClient.listResource`/`itemResource` accept *reactive* paths and
+  params, so a resource reading `plantId()` inside its request function refetches itself
+  when the tab or route changes. Returning `undefined` leaves it idle, which is how
+  dependent resources wait for their key.
+- **`HttpClient` for writes.** `httpResource` is GET-only by design. After a successful
+  write the affected resource is told to `reload()`.
+
+`core/models.ts` mirrors the API's DTOs and `Input*` models one-to-one; `core/enums.ts`
+carries the eleven closed scales as `as const` unions with display labels, so the UI can
+show "Bright indirect" while sending `BrightIndirect`.
+
+### 3.4 Forms
+
+Signal Forms throughout: `form(model, schema)`, `[formField]` bindings, and
+`submit(form, async () => …)`. Three constraints are worth knowing before editing:
+
+1. **Model fields must never be `null` or `undefined`** — use `''`, `0`, `false`.
+2. **`maxlength`, `min`, `max`, `[value]`, `[disabled]` and `[readonly]` are forbidden**
+   on a `[formField]` control; Angular derives them from validators and raises `NG8022`
+   otherwise.
+3. **Validation mirrors the API.** Lengths and ranges are transcribed from the
+   `[StringLength]`/`[Range]` attributes on the `Input*` models. The server remains the
+   authority; this only shortens the feedback loop.
+
+**The species aggregate is the interesting case.** The API requires `care` and
+`toxicity` nested inside `InputPlantSpecies` because the foreign key sits on the
+dependent and MySQL cannot enforce their presence — so the form writes the whole
+aggregate. Flowering is optional as a whole but complete when present, which collides
+with constraint 1: the model therefore holds an always-present `flowering` object plus a
+`hasFlowering` boolean, and sends `null` at the edge. `applyWhen` scopes the flowering
+validators so they bite only when the profile is switched on, and an effect clears it
+when the habit becomes `DoesNotFlower`. Form shape and wire shape differ here
+deliberately; that is the only place they do.
+
+**Server errors land on fields.** `problem-details.ts` maps a 400/422
+`ValidationProblemDetails` onto controls by its camelCase keys, stripping the `$.` prefix
+System.Text.Json adds for its own parse failures.
+
+### 3.5 Configuration-driven pages
+
+Two families of near-identical screens are driven by data rather than duplicated:
+`lookup-spec.ts` describes the five reference tables, `log-spec.ts` the six log types.
+Each declares its path, columns and field list, and one component renders them all.
+
+The cost is one `as unknown as Record<string, never>` per page, where the Signal Forms
+schema path is indexed by key instead of by static property. That is a deliberate,
+contained trade: it buys real per-field validation on a generic form. Anything more
+dynamic than this should get its own typed component instead.
+
+### 3.6 Deletes cascade
+
+The API's required relationships use EF Core's default `DeleteBehavior.Cascade`. A
+delete therefore **never fails on a foreign key** — it removes the dependent tree
+silently. Deleting one climate destroys every species using it, and with each species its
+three profiles, its plants, and all of their logs.
+
+This was found by clicking Delete on a climate during verification and watching the
+species, plant and two logs disappear. The UI cannot prevent it, so every delete dialog
+states exactly what goes with the row. If the backend ever moves to
+`DeleteBehavior.Restrict`, those notes become wrong and the 409/500 paths need handling
+instead. See [Open decisions](#5-open-decisions).
 
 ## 4. Cross-cutting concerns
 
@@ -556,5 +639,10 @@ would make that cheap.
    a handful of logs per plant; the growth and watering logs will outgrow it first.
 5. **Authentication.** Single-user today. If the app is ever deployed publicly, the
    commented-out authentication and the missing CORS policy both need real answers.
-6. **Package alignment.** Bringing EF Core onto the 10.x line alongside the SDK, and
+6. **Delete behaviour.** Required relationships cascade by EF Core default, so deleting
+   a climate silently removes every species under it, their plants and their logs. The
+   frontend warns, but a warning is not a safeguard. `DeleteBehavior.Restrict` plus a
+   409 on the API would make the destructive case impossible rather than merely
+   announced — it needs a migration, so it is a decision, not a fix.
+7. **Package alignment.** Bringing EF Core onto the 10.x line alongside the SDK, and
    resolving the `NU1903` advisory.

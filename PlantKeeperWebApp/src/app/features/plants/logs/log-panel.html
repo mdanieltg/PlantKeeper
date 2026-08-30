@@ -1,0 +1,118 @@
+<div class="flex items-center justify-between border-b border-bark-200 px-5 py-3">
+  <h2 class="text-sm font-semibold text-bark-900">{{ spec().title }}</h2>
+  @if (!adding()) {
+    <button type="button" class="btn btn-secondary" [disabled]="refMissing()" (click)="startAdd()">
+      Add {{ spec().singular }}
+    </button>
+  }
+</div>
+
+@if (refMissing()) {
+  <p class="m-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+    No {{ refField()?.refLabel }}s exist yet, and this log requires one.
+    <a [routerLink]="['/lookups', refField()?.refPath]" class="font-medium underline">
+      Add one first.
+    </a>
+  </p>
+}
+
+@if (adding()) {
+  <div class="border-b border-bark-200 bg-bark-50 p-5">
+    @if (failure(); as problem) {
+      <p class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        {{ problem.message }}
+      </p>
+    }
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      @for (field of spec().fields; track field.key) {
+        <app-field
+          [label]="field.label"
+          [hint]="field.hint"
+          [optional]="!field.required"
+          [errors]="errorsOf(field)"
+          [wrapperClass]="field.kind === 'textarea' ? 'sm:col-span-2' : ''"
+        >
+          @switch (field.kind) {
+            @case ('datetime') {
+              <input type="datetime-local" [formField]="fieldOf(field.key)" />
+            }
+            @case ('number') {
+              <input type="number" [step]="field.step ?? '1'" [formField]="fieldOf(field.key)" />
+            }
+            @case ('textarea') {
+              <textarea rows="2" [formField]="fieldOf(field.key)"></textarea>
+            }
+            @case ('ref') {
+              <select [formField]="fieldOf(field.key)">
+                <option value="" disabled>Select…</option>
+                @for (option of refRows.value(); track option.id) {
+                  <option [value]="option.id">{{ option.name }}</option>
+                }
+              </select>
+            }
+            @default {
+              <input type="text" [formField]="fieldOf(field.key)" />
+            }
+          }
+        </app-field>
+      }
+    </div>
+
+    <div class="mt-4 flex justify-end gap-2">
+      <button type="button" class="btn btn-secondary" (click)="adding.set(false)">Cancel</button>
+      <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">
+        {{ saving() ? 'Saving…' : 'Add entry' }}
+      </button>
+    </div>
+  </div>
+}
+
+<app-load-state [loading]="rows.isLoading()" [failed]="!!rows.error()" [apiHost]="apiHost">
+  @if (rows.value().length === 0) {
+    <app-empty-state
+      [icon]="spec().icon"
+      [heading]="'No ' + spec().title.toLowerCase() + ' entries'"
+      message="Nothing has been recorded for this plant yet."
+    />
+  } @else {
+    <div class="table-shell">
+      <table class="table">
+        <thead>
+          <tr>
+            @for (column of spec().columns; track column.key) {
+              <th>{{ column.label }}</th>
+            }
+            <th class="w-0"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows.value(); track row.id) {
+            <tr class="hover:bg-bark-50">
+              @for (column of spec().columns; track column.key) {
+                <td>{{ display(row, column.key) }}</td>
+              }
+              <td class="text-right">
+                <button
+                  type="button"
+                  class="btn btn-ghost text-red-600 hover:bg-red-50"
+                  (click)="pendingDelete.set(row)"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</app-load-state>
+
+@if (pendingDelete()) {
+  <app-confirm-delete
+    [subject]="spec().singular"
+    (confirmed)="confirmDelete()"
+    (cancelled)="pendingDelete.set(null)"
+  />
+}

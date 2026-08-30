@@ -1,0 +1,70 @@
+<app-page-header
+  heading="Species"
+  subheading="The almanac. Each species carries the care and toxicity profile every plant of that species inherits."
+>
+  <a routerLink="/species/new" class="btn btn-primary">New species</a>
+</app-page-header>
+
+<div class="card overflow-hidden">
+  <app-load-state [loading]="species.isLoading()" [failed]="!!species.error()" [apiHost]="apiHost">
+    @if (species.value().length === 0) {
+      <app-empty-state
+        icon="🌿"
+        heading="No species yet"
+        message="A species needs a climate and a potting mix before it can be created."
+      >
+        <a routerLink="/species/new" class="btn btn-primary">New species</a>
+        <a routerLink="/lookups" class="btn btn-secondary">Reference data</a>
+      </app-empty-state>
+    } @else {
+      <div class="table-shell">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Scientific name</th>
+              <th>Light</th>
+              <th>Temperature</th>
+              <th>Toxicity</th>
+              <th class="w-0"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (entry of species.value(); track entry.id) {
+              <tr class="hover:bg-bark-50">
+                <td class="font-medium text-bark-900">
+                  {{ entry.name }}
+                  @if (entry.nameInEnglish) {
+                    <span class="block text-xs font-normal text-bark-400">
+                      {{ entry.nameInEnglish }}
+                    </span>
+                  }
+                </td>
+                <td class="text-bark-600 italic">{{ entry.scientificName }}</td>
+                <td class="whitespace-nowrap">
+                  {{ lightLabels[entry.care.lightMin] }} – {{ lightLabels[entry.care.lightMax] }}
+                </td>
+                <td class="whitespace-nowrap">
+                  {{ entry.care.minTemperatureCelsius }}–{{ entry.care.maxTemperatureCelsius }} °C
+                </td>
+                <td>
+                  <div class="flex flex-wrap gap-1">
+                    <app-badge [tone]="toxicityTone[entry.toxicity.toHumans]">
+                      {{ toxicityLabels[entry.toxicity.toHumans] }}
+                    </app-badge>
+                    <app-badge [tone]="toxicityTone[entry.toxicity.toPets]">
+                      Pets: {{ toxicityLabels[entry.toxicity.toPets] }}
+                    </app-badge>
+                  </div>
+                </td>
+                <td class="text-right whitespace-nowrap">
+                  <a [routerLink]="['/species', entry.id]" class="btn btn-ghost">View</a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </app-load-state>
+</div>

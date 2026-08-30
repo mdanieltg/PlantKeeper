@@ -1,1 +1,107 @@
-/* You can add global styles to this file, and also import other style files */
+@import "tailwindcss";
+
+/*
+ * Design tokens. Tailwind v4 reads @theme and generates utilities from it, so
+ * `--color-leaf-500` becomes `bg-leaf-500`, `text-leaf-500` and so on.
+ */
+@theme {
+  --color-leaf-50: oklch(0.97 0.02 150);
+  --color-leaf-100: oklch(0.94 0.04 150);
+  --color-leaf-200: oklch(0.88 0.07 150);
+  --color-leaf-300: oklch(0.8 0.11 150);
+  --color-leaf-400: oklch(0.71 0.14 150);
+  --color-leaf-500: oklch(0.63 0.15 150);
+  --color-leaf-600: oklch(0.54 0.13 150);
+  --color-leaf-700: oklch(0.44 0.11 150);
+  --color-leaf-800: oklch(0.36 0.08 150);
+  --color-leaf-900: oklch(0.29 0.06 150);
+
+  --color-bark-50: oklch(0.98 0.004 90);
+  --color-bark-100: oklch(0.96 0.006 90);
+  --color-bark-200: oklch(0.92 0.008 90);
+  --color-bark-300: oklch(0.85 0.01 90);
+  --color-bark-400: oklch(0.7 0.012 90);
+  --color-bark-500: oklch(0.56 0.014 90);
+  --color-bark-600: oklch(0.45 0.014 90);
+  --color-bark-700: oklch(0.37 0.012 90);
+  --color-bark-800: oklch(0.27 0.01 90);
+  --color-bark-900: oklch(0.19 0.008 90);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bark-50 text-bark-800 antialiased;
+  }
+
+  /* Every form control in the app shares one look. */
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
+  textarea,
+  select {
+    @apply w-full rounded-lg border border-bark-300 bg-white px-3 py-2 text-sm text-bark-900
+           shadow-xs transition outline-none
+           placeholder:text-bark-400
+           focus:border-leaf-500 focus:ring-2 focus:ring-leaf-500/25
+           disabled:cursor-not-allowed disabled:bg-bark-100 disabled:text-bark-500;
+  }
+
+  input[type="checkbox"] {
+    @apply size-4 rounded border-bark-300 text-leaf-600 accent-leaf-600;
+  }
+}
+
+@layer components {
+  /*
+   * Base + variant, composed in markup as `class="btn btn-primary"`. Tailwind v4 will
+   * not @apply a class declared in the same layer, so the variants add colour only.
+   */
+  .btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-3.5 py-2
+           text-sm font-medium whitespace-nowrap transition
+           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf-600
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-leaf-600 text-white shadow-xs hover:bg-leaf-700;
+  }
+  .btn-secondary {
+    @apply border border-bark-300 bg-white text-bark-700 shadow-xs hover:bg-bark-100;
+  }
+  .btn-ghost {
+    @apply text-bark-600 hover:bg-bark-100 hover:text-bark-900;
+  }
+  .btn-danger {
+    @apply border border-red-200 bg-white text-red-700 shadow-xs hover:bg-red-50;
+  }
+
+  .card {
+    @apply rounded-xl border border-bark-200 bg-white shadow-xs;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-bark-700;
+  }
+
+  .table-shell {
+    @apply w-full overflow-x-auto;
+  }
+  .table {
+    @apply w-full min-w-max border-collapse text-left text-sm;
+  }
+  .table thead th {
+    @apply border-b border-bark-200 px-4 py-2.5 text-xs font-semibold tracking-wide
+           text-bark-500 uppercase;
+  }
+  .table tbody td {
+    @apply border-b border-bark-100 px-4 py-3 align-top text-bark-800;
+  }
+  .table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+}

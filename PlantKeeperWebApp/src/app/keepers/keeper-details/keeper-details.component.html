@@ -1,6 +1,0 @@
-<div *ngIf="keeper else noKeeper">
-  <h2>{{ keeper.name }}</h2>
-</div>
-<ng-template #noKeeper>
-  <p>Sorry, the keeper that you are looking for does not exist. <a routerLink="/keepers">See all keepers</a>.</p>
-</ng-template>

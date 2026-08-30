@@ -1,0 +1,68 @@
+<app-page-header
+  [heading]="editing() ? 'Edit plant' : 'New plant'"
+  subheading="A plant is one individual in a pot. Its care requirements come from its species."
+>
+  <a routerLink="/plants" class="btn btn-ghost">Cancel</a>
+</app-page-header>
+
+<app-load-state
+  [loading]="species.isLoading() || existing.isLoading()"
+  [failed]="!!existing.error()"
+  [apiHost]="apiHost"
+>
+  <div class="card max-w-2xl p-6">
+    @if (failure(); as problem) {
+      <p class="mb-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        {{ problem.message }}
+      </p>
+    }
+
+    @if (species.value().length === 0) {
+      <p class="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        No species exist yet, and a plant must belong to one.
+        <a routerLink="/species/new" class="font-medium underline">Create a species first.</a>
+      </p>
+    }
+
+    <div class="grid gap-5">
+      <app-field
+        label="Alias"
+        controlId="alias"
+        hint="What you call this particular plant, e.g. “Monstera de la sala”."
+        [errors]="errorsOf(plant.alias, 'alias')"
+      >
+        <input id="alias" type="text" [formField]="plant.alias" />
+      </app-field>
+
+      <app-field label="Species" controlId="speciesId" [errors]="errorsOf(plant.speciesId, 'speciesId')">
+        <select id="speciesId" [formField]="plant.speciesId">
+          <option value="" disabled>Select a species…</option>
+          @for (entry of species.value(); track entry.id) {
+            <option [value]="entry.id">{{ entry.name }} — {{ entry.scientificName }}</option>
+          }
+        </select>
+      </app-field>
+
+      <app-field
+        label="Comments"
+        controlId="comments"
+        [optional]="true"
+        [errors]="errorsOf(plant.comments, 'comments')"
+      >
+        <textarea id="comments" rows="3" [formField]="plant.comments"></textarea>
+      </app-field>
+    </div>
+
+    <div class="mt-6 flex justify-end gap-2">
+      <a routerLink="/plants" class="btn btn-secondary">Cancel</a>
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="saving() || species.value().length === 0"
+        (click)="save()"
+      >
+        {{ saving() ? 'Saving…' : editing() ? 'Save changes' : 'Create plant' }}
+      </button>
+    </div>
+  </div>
+</app-load-state>

@@ -1,0 +1,111 @@
+<app-load-state [loading]="plant.isLoading()" [failed]="!!plant.error()" [apiHost]="apiHost">
+  @if (plant.hasValue()) {
+    <app-page-header
+      [heading]="plant.value().alias"
+      [subheading]="species.hasValue() ? species.value().name + ' · ' + species.value().scientificName : undefined"
+    >
+      <a routerLink="/plants" class="btn btn-ghost">All plants</a>
+      <a [routerLink]="['/plants', plantId(), 'edit']" class="btn btn-secondary">Edit</a>
+      <button type="button" class="btn btn-danger" (click)="pendingDelete.set(true)">Delete</button>
+    </app-page-header>
+
+    @if (failure(); as problem) {
+      <p class="mb-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        {{ problem.message }}
+      </p>
+    }
+
+    <div class="grid gap-6 lg:grid-cols-[20rem_1fr] lg:items-start">
+      <aside class="grid gap-4">
+        @if (plant.value().comments) {
+          <section class="card p-5">
+            <h2 class="text-xs font-semibold tracking-wide text-bark-500 uppercase">Notes</h2>
+            <p class="mt-2 text-sm text-bark-700">{{ plant.value().comments }}</p>
+          </section>
+        }
+
+        @if (species.hasValue()) {
+          <section class="card p-5">
+            <div class="flex items-start justify-between gap-2">
+              <h2 class="text-xs font-semibold tracking-wide text-bark-500 uppercase">Care</h2>
+              <a
+                [routerLink]="['/species', species.value().id]"
+                class="text-xs font-medium text-leaf-700 hover:underline"
+              >
+                Species
+              </a>
+            </div>
+
+            <dl class="mt-3 grid gap-2.5 text-sm">
+              <div class="flex justify-between gap-3">
+                <dt class="text-bark-500">Light</dt>
+                <dd class="text-right font-medium text-bark-800">
+                  {{ lightLabels[species.value().care.lightMin] }} –
+                  {{ lightLabels[species.value().care.lightMax] }}
+                </dd>
+              </div>
+              <div class="flex justify-between gap-3">
+                <dt class="text-bark-500">Temperature</dt>
+                <dd class="text-right font-medium text-bark-800">
+                  {{ species.value().care.minTemperatureCelsius }}–{{
+                    species.value().care.maxTemperatureCelsius
+                  }}
+                  °C
+                </dd>
+              </div>
+              <div class="flex justify-between gap-3">
+                <dt class="text-bark-500">Soil pH</dt>
+                <dd class="text-right font-medium text-bark-800">
+                  {{ species.value().care.soilPhMin }}–{{ species.value().care.soilPhMax }}
+                </dd>
+              </div>
+              <div class="gap-3">
+                <dt class="text-bark-500">Watering</dt>
+                <dd class="mt-0.5 text-bark-800">{{ species.value().care.wateringRequirement }}</dd>
+              </div>
+            </dl>
+
+            <div class="mt-4 flex flex-wrap gap-1.5 border-t border-bark-100 pt-3">
+              <app-badge [tone]="toxicityTone[species.value().toxicity.toHumans]">
+                Humans: {{ toxicityLabels[species.value().toxicity.toHumans] }}
+              </app-badge>
+              <app-badge [tone]="toxicityTone[species.value().toxicity.toPets]">
+                Pets: {{ toxicityLabels[species.value().toxicity.toPets] }}
+              </app-badge>
+            </div>
+          </section>
+        }
+      </aside>
+
+      <section class="card overflow-hidden">
+        <nav class="flex gap-1 overflow-x-auto border-b border-bark-200 bg-bark-50 px-2 py-2">
+          @for (spec of logSpecs; track spec.slug) {
+            <button
+              type="button"
+              class="rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition"
+              [class]="
+                activeTab() === spec.slug
+                  ? 'bg-white text-bark-900 shadow-xs'
+                  : 'text-bark-500 hover:text-bark-800'
+              "
+              (click)="activeTab.set(spec.slug)"
+            >
+              <span aria-hidden="true">{{ spec.icon }}</span> {{ spec.title }}
+            </button>
+          }
+        </nav>
+
+        <app-log-panel [spec]="activeSpec()" [plantId]="plantId()" />
+      </section>
+    </div>
+
+    @if (pendingDelete()) {
+      <app-confirm-delete
+        subject="plant"
+        cascadeNote="Its logs are removed with it."
+        (confirmed)="confirmDelete()"
+        (cancelled)="pendingDelete.set(false)"
+      />
+    }
+  }
+</app-load-state>

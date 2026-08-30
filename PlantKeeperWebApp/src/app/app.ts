@@ -1,0 +1,16 @@
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  templateUrl: './app.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class App {
+  protected readonly nav = [
+    { path: '/plants', label: 'Plants', icon: '🪴' },
+    { path: '/species', label: 'Species', icon: '🌿' },
+    { path: '/lookups', label: 'Reference data', icon: '⚙️' },
+  ];
+}
