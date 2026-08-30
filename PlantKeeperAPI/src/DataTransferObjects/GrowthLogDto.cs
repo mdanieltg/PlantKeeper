@@ -1,10 +1,11 @@
 namespace PlantKeeperAPI.DataTransferObjects;
 
-public class WateringLogDto
+public class GrowthLogDto
 {
     public Guid Id { get; set; }
     public Guid PlantId { get; set; }
-    public Guid WateringMethodId { get; set; }
     public DateTime Date { get; set; }
-    public string? Comments { get; set; }
+    public decimal? HeightCm { get; set; }
+    public decimal? HeightToLastNodeCm { get; set; }
+    public string? Notes { get; set; }
 }

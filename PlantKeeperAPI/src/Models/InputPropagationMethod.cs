@@ -3,10 +3,10 @@ using System.Diagnostics;
 
 namespace PlantKeeperAPI.Models;
 
-[DebuggerDisplay("Watering method: {Name}")]
-public class InputWateringMethod
+[DebuggerDisplay("Propagation method: {Name}")]
+public class InputPropagationMethod
 {
-    [StringLength(30)]
+    [StringLength(50)]
     public required string Name { get; set; }
 
     [StringLength(255)]

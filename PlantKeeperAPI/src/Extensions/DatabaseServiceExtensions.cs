@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using PlantKeeperAPI.Database;
 
-namespace PlantKeeperAPI.Initialization;
+namespace PlantKeeperAPI.Extensions;
 
-public static class Startup
+public static class DatabaseServiceExtensions
 {
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration,
         IWebHostEnvironment environment)
@@ -16,6 +16,6 @@ public static class Startup
             _ => configuration.GetConnectionString("Dev")
         };
         return services.AddDbContext<PlantKeeperDbContext>(options =>
-            options.UseMySql(connectionString, new MySqlServerVersion("8.0.38")));
+            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
     }
 }

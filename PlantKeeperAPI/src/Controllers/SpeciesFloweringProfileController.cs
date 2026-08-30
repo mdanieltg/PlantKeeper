@@ -1,0 +1,110 @@
+using System.Net.Mime;
+using MapsterMapper;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using PlantKeeperAPI.Database;
+using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Enums;
+using PlantKeeperAPI.Models;
+
+namespace PlantKeeperAPI.Controllers;
+
+/// <summary>
+/// Singleton sub-resource, and the one profile that is genuinely optional: a species that
+/// does not flower simply has no row. DELETE is therefore meaningful here, and a profile
+/// on a <c>DoesNotFlower</c> species is rejected.
+/// </summary>
+[ApiController]
+[Route("/api/plant-species/{speciesId:guid}/flowering")]
+[Consumes(MediaTypeNames.Application.Json)]
+[Produces(MediaTypeNames.Application.Json)]
+public class SpeciesFloweringProfileController : ControllerBase
+{
+    private readonly PlantKeeperDbContext _dbContext;
+    private readonly IMapper _mapper;
+
+    public SpeciesFloweringProfileController(PlantKeeperDbContext dbContext, IMapper mapper)
+    {
+        _dbContext = dbContext;
+        _mapper = mapper;
+    }
+
+    [HttpGet]
+    [ProducesResponseType<SpeciesFloweringProfileDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async ValueTask<ActionResult<SpeciesFloweringProfileDto>> Get([FromRoute] Guid speciesId)
+    {
+        SpeciesFloweringProfile? profile = await _dbContext.SpeciesFloweringProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(entry => entry.SpeciesId == speciesId);
+
+        return profile is not null
+            ? Ok(_mapper.Map<SpeciesFloweringProfileDto>(profile))
+            : NotFound();
+    }
+
+    [HttpPut]
+    [ProducesResponseType<SpeciesFloweringProfileDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<SpeciesFloweringProfileDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async ValueTask<ActionResult<SpeciesFloweringProfileDto>> Upsert([FromRoute] Guid speciesId,
+        [FromBody] InputSpeciesFloweringProfile input)
+    {
+        PlantSpecies? species = await _dbContext.PlantSpecies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(entry => entry.Id == speciesId);
+
+        if (species is null) return NotFound();
+
+        if (species.FloweringHabit is FloweringHabit.DoesNotFlower)
+        {
+            ModelState.TryAddModelError("flowering",
+                "A species whose flowering habit is DoesNotFlower cannot carry a flowering profile.");
+
+            return UnprocessableEntity(new ValidationProblemDetails(ModelState));
+        }
+
+        SpeciesFloweringProfile? profile = await _dbContext.SpeciesFloweringProfiles
+            .FirstOrDefaultAsync(entry => entry.SpeciesId == speciesId);
+
+        bool created = profile is null;
+
+        if (profile is null)
+        {
+            profile = _mapper.Map<SpeciesFloweringProfile>(input);
+            profile.SpeciesId = speciesId;
+            await _dbContext.SpeciesFloweringProfiles.AddAsync(profile);
+        }
+        else
+        {
+            _mapper.Map(input, profile);
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        var profileToReturn = _mapper.Map<SpeciesFloweringProfileDto>(profile);
+
+        return created
+            ? CreatedAtAction(nameof(Get), new { speciesId }, profileToReturn)
+            : Ok(profileToReturn);
+    }
+
+    [HttpDelete]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async ValueTask<IActionResult> Delete([FromRoute] Guid speciesId)
+    {
+        SpeciesFloweringProfile? profile = await _dbContext.SpeciesFloweringProfiles
+            .FirstOrDefaultAsync(entry => entry.SpeciesId == speciesId);
+
+        if (profile is null) return NotFound();
+
+        _dbContext.Remove(profile);
+        await _dbContext.SaveChangesAsync();
+
+        return NoContent();
+    }
+}

@@ -2,11 +2,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PlantKeeperAPI.Models;
 
-public class InputWateringLog
+public class InputFertilizationLog
 {
     public Guid PlantId { get; set; }
-    public Guid WateringMethodId { get; set; }
+    public Guid FertilizerId { get; set; }
     public DateTime Date { get; set; }
+
+    [StringLength(100)]
+    public string? Dose { get; set; }
 
     [StringLength(255)]
     public string? Comments { get; set; }

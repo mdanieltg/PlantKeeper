@@ -10,15 +10,15 @@ using PlantKeeperAPI.Models;
 namespace PlantKeeperAPI.Controllers;
 
 [ApiController]
-[Route("/api/watering-logs")]
+[Route("/api/repotting-logs")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
-public class WateringLogsController : ControllerBase
+public class RepottingLogsController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public WateringLogsController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public RepottingLogsController(PlantKeeperDbContext dbContext, IMapper mapper)
     {
         _dbContext = dbContext;
         _mapper = mapper;
@@ -26,51 +26,51 @@ public class WateringLogsController : ControllerBase
 
     /// <param name="plantId">Optional - restricts the result to a single plant.</param>
     [HttpGet]
-    [ProducesResponseType<IEnumerable<WateringLogDto>>(StatusCodes.Status200OK)]
-    public IEnumerable<WateringLogDto> List([FromQuery] Guid? plantId)
+    [ProducesResponseType<IEnumerable<RepottingLogDto>>(StatusCodes.Status200OK)]
+    public IEnumerable<RepottingLogDto> List([FromQuery] Guid? plantId)
     {
-        IQueryable<WateringLog> logs = _dbContext.WateringLogs;
+        IQueryable<RepottingLog> logs = _dbContext.RepottingLogs;
         if (plantId is not null) logs = logs.Where(log => log.PlantId == plantId);
 
-        return _mapper.Map<IEnumerable<WateringLogDto>>(logs.OrderBy(log => log.Date));
+        return _mapper.Map<IEnumerable<RepottingLogDto>>(logs.OrderBy(log => log.Date));
     }
 
     [HttpPost]
-    [ProducesResponseType<WateringLogDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType<RepottingLogDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
-    public async ValueTask<ActionResult<WateringLogDto>> Create([FromBody] InputWateringLog log)
+    public async ValueTask<ActionResult<RepottingLogDto>> Create([FromBody] InputRepottingLog log)
     {
         if (!await ReferencesResolveAsync(log))
             return UnprocessableEntity(new ValidationProblemDetails(ModelState));
 
-        var logToCreate = _mapper.Map<WateringLog>(log);
-        await _dbContext.WateringLogs.AddAsync(logToCreate);
+        var logToCreate = _mapper.Map<RepottingLog>(log);
+        await _dbContext.RepottingLogs.AddAsync(logToCreate);
         await _dbContext.SaveChangesAsync();
 
-        var logToReturn = _mapper.Map<WateringLogDto>(logToCreate);
-        return CreatedAtAction(nameof(Get), new { wateringLogId = logToReturn.Id }, logToReturn);
+        var logToReturn = _mapper.Map<RepottingLogDto>(logToCreate);
+        return CreatedAtAction(nameof(Get), new { repottingLogId = logToReturn.Id }, logToReturn);
     }
 
-    [HttpGet("{wateringLogId:guid}")]
-    [ProducesResponseType<WateringLogDto>(StatusCodes.Status200OK)]
+    [HttpGet("{repottingLogId:guid}")]
+    [ProducesResponseType<RepottingLogDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async ValueTask<ActionResult<WateringLogDto>> Get([FromRoute] Guid wateringLogId)
+    public async ValueTask<ActionResult<RepottingLogDto>> Get([FromRoute] Guid repottingLogId)
     {
-        WateringLog? log = await _dbContext.WateringLogs.FindAsync(wateringLogId);
+        RepottingLog? log = await _dbContext.RepottingLogs.FindAsync(repottingLogId);
         return log is not null
-            ? Ok(_mapper.Map<WateringLogDto>(log))
+            ? Ok(_mapper.Map<RepottingLogDto>(log))
             : NotFound();
     }
 
-    [HttpPut("{wateringLogId:guid}")]
+    [HttpPut("{repottingLogId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
-    public async ValueTask<IActionResult> Update([FromRoute] Guid wateringLogId, [FromBody] InputWateringLog log)
+    public async ValueTask<IActionResult> Update([FromRoute] Guid repottingLogId, [FromBody] InputRepottingLog log)
     {
-        WateringLog? currentLog = await _dbContext.WateringLogs.FindAsync(wateringLogId);
+        RepottingLog? currentLog = await _dbContext.RepottingLogs.FindAsync(repottingLogId);
         if (currentLog is null) return NotFound();
 
         if (!await ReferencesResolveAsync(log))
@@ -82,12 +82,12 @@ public class WateringLogsController : ControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{wateringLogId:guid}")]
+    [HttpDelete("{repottingLogId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async ValueTask<IActionResult> Delete([FromRoute] Guid wateringLogId)
+    public async ValueTask<IActionResult> Delete([FromRoute] Guid repottingLogId)
     {
-        WateringLog? log = await _dbContext.WateringLogs.FindAsync(wateringLogId);
+        RepottingLog? log = await _dbContext.RepottingLogs.FindAsync(repottingLogId);
         if (log is null) return NotFound();
 
         _dbContext.Remove(log);
@@ -96,10 +96,9 @@ public class WateringLogsController : ControllerBase
         return NoContent();
     }
 
-    private async ValueTask<bool> ReferencesResolveAsync(InputWateringLog log)
+    private async ValueTask<bool> ReferencesResolveAsync(InputRepottingLog log)
     {
         await ModelState.RequireExistsAsync<Plant>(_dbContext, log.PlantId, "plantId");
-        await ModelState.RequireExistsAsync<WateringMethod>(_dbContext, log.WateringMethodId, "wateringMethodId");
         return ModelState.IsValid;
     }
 }

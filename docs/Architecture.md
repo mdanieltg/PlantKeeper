@@ -46,15 +46,17 @@ Never assume a frontend interface reflects the current API contract.
 |---|---|---|
 | Target framework | .NET 10 | |
 | EF Core | 9.0.0 | via `Pomelo.EntityFrameworkCore.MySql` |
-| Database | MySQL 8.0.38 | server version pinned in `Startup.cs` |
-| Object mapping | Mapster 7.4.0 | replaced AutoMapper in commit `339e341` |
-| API docs | Swashbuckle 10.1.0 | Swagger UI, Development only |
+| Database | MySQL 8.0.38 | server version auto-detected in `DatabaseServiceExtensions` |
+| Object mapping | Mapster 7.4.0 | replaced AutoMapper in commit `339e341`; strict, see [2.9](#29-object-mapping) |
+| API docs | Scalar 2.17.2 | replaced Swashbuckle; document from `Microsoft.AspNetCore.OpenApi` 10.0.11 |
 
 Two version notes worth tracking: the EF Core runtime packages are on the 9.x line
 while the SDK and `Microsoft.AspNetCore.OpenApi` are on 10.x, and the local `dotnet ef`
 CLI is 10.0.3 driving a 9.0.0 provider. This works today but is not a combination to
 rely on indefinitely. Restore also reports `NU1903` — a known high-severity advisory
-against `Microsoft.OpenApi` 2.3.0, pulled in transitively by Swashbuckle.
+against `Microsoft.OpenApi`, which `Microsoft.AspNetCore.OpenApi` pulls in
+transitively. Dropping Swashbuckle for Scalar removed one edge to that package but not
+the other, so the warning stands.
 
 ### 2.2 Project layout
 
@@ -63,7 +65,9 @@ PlantKeeperAPI/
   PlantKeeperAPI.sln
   src/
     Program.cs               # composition root and HTTP pipeline
-    Initialization/          # service-registration extension methods
+    Extensions/              # service-registration and helper extension methods
+    Mapping/                 # Mapster IRegister classes
+    Services/                # PlantSpeciesService only - see 2.5
     Entities/                # EF Core domain model (23 types)
     Enums/                   # closed value sets from the almanac (12 types)
     Database/
@@ -81,13 +85,28 @@ PlantKeeperAPI/
 
 ```
 Controllers (ReturnHttpNotAcceptable = true)
-  -> AddDatabase(...)   # environment-selected connection string
-  -> AddMapster()
-  -> Swagger + CORS "devenv"   [Development only]
-  -> UseHsts + UseCors()       [non-Development]
+  -> AddJsonOptions      + ConfigureHttpJsonOptions   # both, see below
+  -> AddDatabase(...)          # environment-selected connection string
+  -> AddCorsPolicies()
+  -> AddMapping()              # IRegister scan, strict, Compile()
+  -> AddApiDocumentation()     # AddOpenApi
+  -> IPlantSpeciesService
+  -----
+  -> UseApiDocumentation()     # MapOpenApi + Scalar   [Development only]
+  -> UseHsts                   [non-Development]
+  -> UseCorsPolicies()
   -> UseAuthorization
   -> MapControllers
 ```
+
+Every registration above lives in an extension class under `src/Extensions/`;
+`Program.cs` composes them and holds no configuration of its own.
+
+**JSON options are configured twice, deliberately.** MVC's `JsonOptions` govern what
+the endpoints actually serialize, while the OpenAPI document generator reads the
+`Http.Json` options. Both go through the same `ApplyPlantKeeperDefaults()` extension.
+Configuring only the first is not a cosmetic slip — it shipped a document advertising
+`{"type": "integer"}` for every enum while the API returned strings.
 
 `ReturnHttpNotAcceptable = true` means the API returns **406** rather than silently
 falling back to JSON when a client asks for an unsupported media type. Combined with
@@ -137,11 +156,27 @@ HTTP request
   -> MySQL
 ```
 
-There is **no repository or service layer**. Controllers inject `PlantKeeperDbContext`
-and `IMapper` directly. This is a reasonable fit for a single-writer personal
-application, and it should stay this way until something genuinely needs shared
-business logic — introducing a service layer for its own sake would add indirection
-without removing any.
+There is **no repository layer and no generic service layer**. Controllers inject
+`PlantKeeperDbContext` and `IMapper` directly. This is a reasonable fit for a
+single-writer personal application, and it should stay this way until something
+genuinely needs shared business logic — a service layer for its own sake would add
+indirection without removing any.
+
+**One service exists**, and only because the alternative is an API that can create
+invalid data:
+[`PlantSpeciesService`](PlantKeeperAPI/src/Services/PlantSpeciesService.cs) owns the
+species aggregate. Two invariants span more than one table and neither can be delegated
+to MySQL:
+
+1. **Care and toxicity are required, but the database cannot say so.** The foreign key
+   sits on the dependent, so nothing stops a species row existing alone. `InputPlantSpecies`
+   therefore carries both profiles nested and the service writes them in one
+   `SaveChanges`.
+2. **`FloweringHabit.DoesNotFlower` implies no flowering row.** The service rejects a
+   flowering profile on such a species and removes the row when the habit changes.
+
+That is the bar for adding another service: an invariant the database cannot hold, not
+merely a write that touches two tables.
 
 Three distinct shapes exist per resource, and the split is intentional:
 
@@ -155,8 +190,9 @@ Keeping entities free of validation attributes means the persistence model never
 leaks into the API contract, and API-level validation can be stricter or looser than
 the database without fighting it. The cost is a real one: **validation rules live in
 two places** — `DataAnnotations` on input models and Fluent API in the `DbContext` —
-with nothing keeping them in sync. They have already drifted (see
-[Known issues](#210-known-issues-and-drift)).
+with nothing keeping them in sync. They had already drifted once; the attributes were
+re-derived from `OnModelCreating` and now mirror it exactly, but nothing enforces that
+they stay aligned — check the Fluent API when adding a validated field.
 
 ### 2.6 Persistence
 
@@ -351,32 +387,82 @@ import endpoint — is an open decision.
 - `PUT` and `DELETE` return `204 No Content`; `POST` returns `201` with
   `CreatedAtAction`.
 
-**Foreign keys are validated in the controller.**
-[`WateringLogsController`](PlantKeeperAPI/src/Controllers/WateringLogsController.cs)
-loads each referenced entity, accumulates `ModelState` errors, and returns
-`422 Unprocessable Entity` with a `ValidationProblemDetails` body rather than letting
-the insert fail as a database-level FK violation. This is the intended pattern for any
-resource with foreign keys — it produces a field-addressable error the client can act
-on. Only `WateringLogsController` implements it so far.
+**Decoration is uniform.** Class level carries `[ApiController]`, `[Route]`,
+`[Consumes(MediaTypeNames.Application.Json)]` and
+`[Produces(MediaTypeNames.Application.Json)]`. Actions use the generic
+`ProducesResponseType<T>` overload so each status carries a body schema —
+`ValidationProblemDetails` for 400/422, `ProblemDetails` for 409.
 
-Coverage is thin: **3 of 23 entities have controllers** (`Plants`, `WateringLogs`,
-`WateringMethods`). None of the almanac entities are exposed.
+> Use `[Consumes]`, not `[Accepts]`. `Microsoft.AspNetCore.Http.AcceptsAttribute`
+> implements `IAcceptsMetadata`, which only the minimal-API pipeline reads. MVC's
+> ApiExplorer populates request formats from `IApiRequestMetadataProvider`, so
+> `[Accepts]` on a controller action compiles and then silently never reaches the
+> document.
+
+**Foreign keys are validated before the insert**, via
+`ModelState.RequireExistsAsync<TEntity>(...)` and `RequireAllExistAsync` in
+[`ModelStateExtensions`](PlantKeeperAPI/src/Extensions/ModelStateExtensions.cs). Each
+controller accumulates `ModelState` errors and returns `422 Unprocessable Entity` with
+a `ValidationProblemDetails` body, producing a field-addressable error rather than a
+database-level FK violation surfacing as a 500.
+
+**Sub-resource conventions:**
+
+| Shape | Route | Notes |
+|---|---|---|
+| Lookups | `/api/climates`, `/api/pests`, … | flat, full CRUD |
+| Logs | `/api/watering-logs`, … | flat, optional `?plantId=` filter |
+| Species profiles | `/api/plant-species/{speciesId}/care\|toxicity\|flowering` | singleton; no POST, `PUT` upserts (200 or 201) |
+| Matrices | `/api/plant-species/{speciesId}/fertilizer-recommendations`, … | full CRUD; **409** on the unique species+key index |
+| Many-to-many | `PUT /api/pests/{pestId}/treatments`, … | replace the whole set with a `Guid[]` body |
+
+Care and toxicity intentionally expose **no DELETE**. Both are required, so removing
+one would leave exactly the half-researched species the schema exists to prevent; to
+drop them, delete the species. Flowering is genuinely optional and does have DELETE.
+
+Coverage is now complete: **23 of 23 entities have controllers**, 113 operations across
+46 paths.
 
 ### 2.9 Object mapping
 
-Mapster is registered via `AddMapster()` and injected as `IMapper`. There are **no
-`TypeAdapterConfig` classes** — every mapping relies on convention, matching source and
-destination property names.
+Mapster is registered through
+[`AddMapping()`](PlantKeeperAPI/src/Extensions/MappingServiceExtensions.cs), which scans
+the assembly for `IRegister` classes in `src/Mapping/`, sets
+`RequireDestinationMemberSource(true)` on the default settings, and calls `Compile()`.
 
-This is the most fragile thing in the codebase, and the fragility is silent. When names
-do not line up, Mapster does not throw; it leaves the destination property at its
-default. A renamed entity property produces empty strings and `Guid.Empty` at runtime
-with a clean compile and no warning. Every mismatch listed below is of exactly this
-kind.
+This used to be the most fragile thing in the codebase, and the fragility was silent:
+mapping ran on convention alone, so a name mismatch left the destination at its default
+and produced empty strings and `Guid.Empty` at runtime from a clean compile. Three such
+bugs were live.
 
-Adding explicit `TypeAdapterConfig` registrations — or calling
-`TypeAdapterConfig.GlobalSettings.Compile()` at startup to surface unmapped members
-eagerly — would convert this class of bug from silent to loud.
+Both settings exist to end that. A destination member with no source now fails the
+**startup**, naming the offending member:
+
+```
+Unhandled exception. Mapster.CompileException: Error while compiling
+source=PlantKeeperAPI.Entities.Pest
+destination=PlantKeeperAPI.DataTransferObjects.PestDto
+ ---> System.InvalidOperationException: The following members of destination class
+      PestDto do not have a corresponding source member mapped or ignored:
+      ThisFieldHasNoSource
+```
+
+Two consequences for anyone adding a resource:
+
+- **Every DTO/Model pair needs a registration.** `Compile()` only covers registered
+  pairs; an unregistered one throws on first use instead of at boot.
+- **Navigation properties must be ignored**, which is what the
+  `IgnoreNavigations()` extension does — it reflects over the destination and ignores
+  every member typed as an entity or a collection of them, so strict mode does not turn
+  into hundreds of hand-written `.Ignore()` calls.
+
+The one genuine name mismatch is declared explicitly: `WateringLog.MethodId` against
+`WateringLogDto.WateringMethodId`. Left to convention Mapster would flatten
+`WateringMethodId` from the unloaded `WateringMethod` navigation and quietly return
+`Guid.Empty`.
+
+A clean `dotnet build` still proves nothing about this layer — but a clean **boot** now
+does.
 
 ### 2.10 Known issues and drift
 
@@ -384,20 +470,28 @@ Verified against the current tree. None of these break the build.
 
 | # | Issue | Effect |
 |---|---|---|
-| 1 | `PlantDto` and `InputPlant` expose `Name`/`Care`; the entity has `Alias`/`Comments`/`SpeciesId` | Plant create/read silently maps nothing |
-| 2 | `InputWateringLog.WateringMethodId` vs entity `WateringLog.MethodId` | FK never populated by convention mapping |
-| 3 | `KeeperId` survives on `InputWateringLog` and `WateringLogDto` | Orphan from the `Keeper` entity removed in `7c6bb9b` |
-| 4 | `InputWateringMethod.Name` is `[StringLength(20)]`; the column is `HasMaxLength(30)` | Validation stricter than storage, drifted silently |
-| 5 | `DbContext.OnConfiguring` calls `AutoDetect("")` | Would throw if reached; unnecessary |
-| 6 | `UseCors()` outside Development names no policy | Cross-origin blocked once deployed |
-| 7 | `UseAuthorization()` without authentication | No auth anywhere |
-| 8 | 20 of 23 entities have no controller | Almanac data unreachable over HTTP |
-| 9 | No test project | `tests/` is an empty directory |
+| 1 | `DbContext.OnConfiguring` calls `AutoDetect("")` | Would throw if reached; unnecessary dead code |
+| 2 | `UseCorsPolicies()` outside Development names no policy | Cross-origin blocked once deployed |
+| 3 | `UseAuthorization()` without authentication | No auth anywhere; every endpoint anonymous |
+| 4 | No test project | `tests/` is an empty directory; verification is manual |
+| 5 | EF Core runtime on 9.x, SDK and `Microsoft.AspNetCore.OpenApi` on 10.x | Works today, not a combination to rely on |
+| 6 | `NU1903` against transitive `Microsoft.OpenApi` | High-severity advisory, pulled by `Microsoft.AspNetCore.OpenApi` |
 
-Items 1–3 share a root cause: the entities were reshaped across commits `7c6bb9b`,
-`0b71531`, and `32567cf` without the API layer following. Reconciling the DTO and input
-models against the current entities is the single highest-value cleanup available, and
-it should land before any new controllers are written on top of the same pattern.
+**Resolved since the previous revision.** The drift items that dominated this table
+are gone:
+
+| Was | Now |
+|---|---|
+| `PlantDto`/`InputPlant` exposed `Name`/`Care` against `Alias`/`Comments`/`SpeciesId` | Rewritten against the entity |
+| `InputWateringLog.WateringMethodId` never reached `WateringLog.MethodId` | Explicit `.Map(...)` in `PlantMappings`, verified end-to-end |
+| `KeeperId` orphaned on `InputWateringLog`/`WateringLogDto` after `7c6bb9b` | Removed |
+| `InputWateringMethod.Name` `[StringLength(20)]` against a 30-char column | Aligned; all validation attributes now mirror `OnModelCreating` |
+| 20 of 23 entities had no controller | All 23 exposed |
+
+Their shared root cause — entities reshaped across `7c6bb9b`, `0b71531` and `32567cf`
+without the API layer following, and nothing in the toolchain flagging it — is now
+addressed structurally rather than by hand: see [2.9](#29-object-mapping). A recurrence
+fails the boot instead of returning empty fields.
 
 ---
 
@@ -455,10 +549,12 @@ would make that cheap.
    remain the source of truth after loading, or does the database take over?
 2. **Completing the almanac.** 13 species cannot be loaded until their care data is
    researched. That work gates seeding entirely.
-3. **API surface for reference data.** Full CRUD for all 20 uncovered entities is a lot
-   of near-identical code. A generic controller base, or read-only endpoints for
-   lookups, may serve better.
-4. **Authentication.** Single-user today. If the app is ever deployed publicly, the
+3. **Read-only lookups.** All 23 resources now expose full CRUD. Several lookup tables
+   (`Climate`, `PottingMix`, `PropagationMethod`) may not want public write endpoints
+   once seeding exists — worth revisiting rather than assuming CRUD everywhere.
+4. **Paging and filtering.** List endpoints return whole tables. Fine at 48 species and
+   a handful of logs per plant; the growth and watering logs will outgrow it first.
+5. **Authentication.** Single-user today. If the app is ever deployed publicly, the
    commented-out authentication and the missing CORS policy both need real answers.
-5. **Package alignment.** Bringing EF Core onto the 10.x line alongside the SDK, and
+6. **Package alignment.** Bringing EF Core onto the 10.x line alongside the SDK, and
    resolving the `NU1903` advisory.

@@ -10,15 +10,15 @@ using PlantKeeperAPI.Models;
 namespace PlantKeeperAPI.Controllers;
 
 [ApiController]
-[Route("/api/watering-logs")]
+[Route("/api/fertilization-logs")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
-public class WateringLogsController : ControllerBase
+public class FertilizationLogsController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public WateringLogsController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public FertilizationLogsController(PlantKeeperDbContext dbContext, IMapper mapper)
     {
         _dbContext = dbContext;
         _mapper = mapper;
@@ -26,51 +26,52 @@ public class WateringLogsController : ControllerBase
 
     /// <param name="plantId">Optional - restricts the result to a single plant.</param>
     [HttpGet]
-    [ProducesResponseType<IEnumerable<WateringLogDto>>(StatusCodes.Status200OK)]
-    public IEnumerable<WateringLogDto> List([FromQuery] Guid? plantId)
+    [ProducesResponseType<IEnumerable<FertilizationLogDto>>(StatusCodes.Status200OK)]
+    public IEnumerable<FertilizationLogDto> List([FromQuery] Guid? plantId)
     {
-        IQueryable<WateringLog> logs = _dbContext.WateringLogs;
+        IQueryable<FertilizationLog> logs = _dbContext.FertilizationLogs;
         if (plantId is not null) logs = logs.Where(log => log.PlantId == plantId);
 
-        return _mapper.Map<IEnumerable<WateringLogDto>>(logs.OrderBy(log => log.Date));
+        return _mapper.Map<IEnumerable<FertilizationLogDto>>(logs.OrderBy(log => log.Date));
     }
 
     [HttpPost]
-    [ProducesResponseType<WateringLogDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType<FertilizationLogDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
-    public async ValueTask<ActionResult<WateringLogDto>> Create([FromBody] InputWateringLog log)
+    public async ValueTask<ActionResult<FertilizationLogDto>> Create([FromBody] InputFertilizationLog log)
     {
         if (!await ReferencesResolveAsync(log))
             return UnprocessableEntity(new ValidationProblemDetails(ModelState));
 
-        var logToCreate = _mapper.Map<WateringLog>(log);
-        await _dbContext.WateringLogs.AddAsync(logToCreate);
+        var logToCreate = _mapper.Map<FertilizationLog>(log);
+        await _dbContext.FertilizationLogs.AddAsync(logToCreate);
         await _dbContext.SaveChangesAsync();
 
-        var logToReturn = _mapper.Map<WateringLogDto>(logToCreate);
-        return CreatedAtAction(nameof(Get), new { wateringLogId = logToReturn.Id }, logToReturn);
+        var logToReturn = _mapper.Map<FertilizationLogDto>(logToCreate);
+        return CreatedAtAction(nameof(Get), new { fertilizationLogId = logToReturn.Id }, logToReturn);
     }
 
-    [HttpGet("{wateringLogId:guid}")]
-    [ProducesResponseType<WateringLogDto>(StatusCodes.Status200OK)]
+    [HttpGet("{fertilizationLogId:guid}")]
+    [ProducesResponseType<FertilizationLogDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async ValueTask<ActionResult<WateringLogDto>> Get([FromRoute] Guid wateringLogId)
+    public async ValueTask<ActionResult<FertilizationLogDto>> Get([FromRoute] Guid fertilizationLogId)
     {
-        WateringLog? log = await _dbContext.WateringLogs.FindAsync(wateringLogId);
+        FertilizationLog? log = await _dbContext.FertilizationLogs.FindAsync(fertilizationLogId);
         return log is not null
-            ? Ok(_mapper.Map<WateringLogDto>(log))
+            ? Ok(_mapper.Map<FertilizationLogDto>(log))
             : NotFound();
     }
 
-    [HttpPut("{wateringLogId:guid}")]
+    [HttpPut("{fertilizationLogId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
-    public async ValueTask<IActionResult> Update([FromRoute] Guid wateringLogId, [FromBody] InputWateringLog log)
+    public async ValueTask<IActionResult> Update([FromRoute] Guid fertilizationLogId,
+        [FromBody] InputFertilizationLog log)
     {
-        WateringLog? currentLog = await _dbContext.WateringLogs.FindAsync(wateringLogId);
+        FertilizationLog? currentLog = await _dbContext.FertilizationLogs.FindAsync(fertilizationLogId);
         if (currentLog is null) return NotFound();
 
         if (!await ReferencesResolveAsync(log))
@@ -82,12 +83,12 @@ public class WateringLogsController : ControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{wateringLogId:guid}")]
+    [HttpDelete("{fertilizationLogId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async ValueTask<IActionResult> Delete([FromRoute] Guid wateringLogId)
+    public async ValueTask<IActionResult> Delete([FromRoute] Guid fertilizationLogId)
     {
-        WateringLog? log = await _dbContext.WateringLogs.FindAsync(wateringLogId);
+        FertilizationLog? log = await _dbContext.FertilizationLogs.FindAsync(fertilizationLogId);
         if (log is null) return NotFound();
 
         _dbContext.Remove(log);
@@ -96,10 +97,10 @@ public class WateringLogsController : ControllerBase
         return NoContent();
     }
 
-    private async ValueTask<bool> ReferencesResolveAsync(InputWateringLog log)
+    private async ValueTask<bool> ReferencesResolveAsync(InputFertilizationLog log)
     {
         await ModelState.RequireExistsAsync<Plant>(_dbContext, log.PlantId, "plantId");
-        await ModelState.RequireExistsAsync<WateringMethod>(_dbContext, log.WateringMethodId, "wateringMethodId");
+        await ModelState.RequireExistsAsync<Fertilizer>(_dbContext, log.FertilizerId, "fertilizerId");
         return ModelState.IsValid;
     }
 }

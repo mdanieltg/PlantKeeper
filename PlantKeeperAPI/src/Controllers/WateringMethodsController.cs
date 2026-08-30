@@ -1,4 +1,4 @@
-﻿using System.Net.Mime;
+using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using PlantKeeperAPI.Database;
@@ -10,6 +10,7 @@ namespace PlantKeeperAPI.Controllers;
 
 [ApiController]
 [Route("/api/watering-methods")]
+[Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
 public class WateringMethodsController : ControllerBase
 {
@@ -23,49 +24,48 @@ public class WateringMethodsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<IEnumerable<WateringMethodDto>>(StatusCodes.Status200OK)]
     public IEnumerable<WateringMethodDto> List() => _mapper.Map<IEnumerable<WateringMethodDto>>(
         _dbContext.WateringMethods.OrderBy(method => method.Name)
     );
 
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> Create([FromBody] InputWateringMethod wateringMethod)
+    [ProducesResponseType<WateringMethodDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async ValueTask<ActionResult<WateringMethodDto>> Create([FromBody] InputWateringMethod method)
     {
-        var wateringMethodToCreate = _mapper.Map<WateringMethod>(wateringMethod);
-        await _dbContext.WateringMethods.AddAsync(wateringMethodToCreate);
+        var methodToCreate = _mapper.Map<WateringMethod>(method);
+        await _dbContext.WateringMethods.AddAsync(methodToCreate);
         await _dbContext.SaveChangesAsync();
 
-        var wateringMethodToReturn = _mapper.Map<WateringMethodDto>(wateringMethodToCreate);
-        return CreatedAtAction(nameof(Get), new { wateringMethodId = wateringMethodToReturn.Id },
-            wateringMethodToReturn);
+        var methodToReturn = _mapper.Map<WateringMethodDto>(methodToCreate);
+        return CreatedAtAction(nameof(Get), new { wateringMethodId = methodToReturn.Id }, methodToReturn);
     }
 
     [HttpGet("{wateringMethodId:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<WateringMethodDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<WateringMethodDto>> Get([FromRoute] Guid wateringMethodId)
+    public async ValueTask<ActionResult<WateringMethodDto>> Get([FromRoute] Guid wateringMethodId)
     {
-        WateringMethod? wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
-        return wateringMethod is not null
-            ? Ok(_mapper.Map<WateringMethodDto>(wateringMethod))
+        WateringMethod? method = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
+        return method is not null
+            ? Ok(_mapper.Map<WateringMethodDto>(method))
             : NotFound();
     }
 
     [HttpPut("{wateringMethodId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> Update([FromRoute] Guid wateringMethodId,
-        [FromBody] InputWateringMethod wateringMethod)
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async ValueTask<IActionResult> Update([FromRoute] Guid wateringMethodId,
+        [FromBody] InputWateringMethod method)
     {
         WateringMethod? currentWateringMethod = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
         if (currentWateringMethod is null) return NotFound();
 
-        _mapper.Map(wateringMethod, currentWateringMethod);
+        _mapper.Map(method, currentWateringMethod);
         await _dbContext.SaveChangesAsync();
 
         return NoContent();
@@ -74,12 +74,12 @@ public class WateringMethodsController : ControllerBase
     [HttpDelete("{wateringMethodId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete([FromRoute] Guid wateringMethodId)
+    public async ValueTask<IActionResult> Delete([FromRoute] Guid wateringMethodId)
     {
-        WateringMethod? wateringMethod = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
-        if (wateringMethod is null) return NotFound();
+        WateringMethod? method = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
+        if (method is null) return NotFound();
 
-        _dbContext.Remove(wateringMethod);
+        _dbContext.Remove(method);
         await _dbContext.SaveChangesAsync();
 
         return NoContent();

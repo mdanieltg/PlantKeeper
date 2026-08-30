@@ -3,8 +3,8 @@ using System.Diagnostics;
 
 namespace PlantKeeperAPI.Models;
 
-[DebuggerDisplay("Watering method: {Name}")]
-public class InputWateringMethod
+[DebuggerDisplay("Potting mix: {Name}")]
+public class InputPottingMix
 {
     [StringLength(30)]
     public required string Name { get; set; }
