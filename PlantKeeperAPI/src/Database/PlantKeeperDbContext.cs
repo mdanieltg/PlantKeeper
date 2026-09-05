@@ -1,9 +1,27 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PlantKeeperAPI.Entities;
 
 namespace PlantKeeperAPI.Database;
 
-public class PlantKeeperDbContext : DbContext
+/// <summary>
+/// The full generic overload, not <c>IdentityDbContext&lt;Keeper, Role, Guid&gt;</c>. The
+/// short form maps no passkey entity at all, so passkeys would have no table and the
+/// omission would only surface when a credential failed to save. Every type argument here
+/// except <see cref="IdentityUserPasskey{TKey}" /> is what the short form would have
+/// supplied anyway.
+/// </summary>
+public class PlantKeeperDbContext : IdentityDbContext<
+    Keeper,
+    Role,
+    Guid,
+    IdentityUserClaim<Guid>,
+    IdentityUserRole<Guid>,
+    IdentityUserLogin<Guid>,
+    IdentityRoleClaim<Guid>,
+    IdentityUserToken<Guid>,
+    IdentityUserPasskey<Guid>>
 {
     public PlantKeeperDbContext()
     {
@@ -46,8 +64,29 @@ public class PlantKeeperDbContext : DbContext
             optionsBuilder.UseNpgsql();
     }
 
+    /// <summary>
+    /// Opts the Identity schema in to version 3, which is the version that maps passkeys.
+    /// <para>
+    /// Identity defaults to an older schema so an existing database is not silently
+    /// restructured by a package upgrade. The effect of leaving the default is quiet: the
+    /// context still compiles with <see cref="IdentityUserPasskey{TKey}" /> as a type
+    /// argument, still exposes a <c>UserPasskeys</c> set, and still produces a migration -
+    /// just one with no passkey table in it.
+    /// </para>
+    /// </summary>
+    protected override Version SchemaVersion => IdentitySchemaVersions.Version3;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // First, not last. This call is what configures the Identity tables, and the fluent
+        // API is last-write-wins - run it after the configuration below and Identity would
+        // overwrite anything declared here about Keeper or Role. It was a no-op at the
+        // bottom of this method while the base type was DbContext; it stopped being one the
+        // moment the base type became IdentityDbContext.
+        base.OnModelCreating(modelBuilder);
+
+        IdentitySeedData.Seed(modelBuilder);
+
         modelBuilder.Entity<PlantSpecies>(builder =>
         {
             // Primary key
@@ -568,6 +607,7 @@ public class PlantKeeperDbContext : DbContext
                 .HasMaxLength(300);
         });
 
-        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<Keeper>(builder => builder.Property(keeper => keeper.DisplayName).HasMaxLength(100));
+        modelBuilder.Entity<Role>(builder => builder.Property(role => role.Description).HasMaxLength(255));
     }
 }

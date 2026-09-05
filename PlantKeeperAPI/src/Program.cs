@@ -13,6 +13,7 @@ builder.Services
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.ApplyPlantKeeperDefaults());
 
 builder.Services.AddDatabase(builder.Configuration, builder.Environment);
+builder.Services.AddIdentityFoundation();
 builder.Services.AddCorsPolicies();
 builder.Services.AddMapping();
 builder.Services.AddApiDocumentation();
@@ -31,4 +32,7 @@ app.UseCorsPolicies();
 // app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+await app.SeedFirstKeeperAsync();
+
 app.Run();
