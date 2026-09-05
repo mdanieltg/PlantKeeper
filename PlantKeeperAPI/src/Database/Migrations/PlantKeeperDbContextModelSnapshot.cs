@@ -251,7 +251,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BeneficialOrganisms");
+                    b.ToTable("BeneficialOrganisms", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.Climate", b =>
@@ -296,7 +296,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Climates");
+                    b.ToTable("Climates", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.FertilizationLog", b =>
@@ -328,7 +328,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasIndex("PlantId");
 
-                    b.ToTable("FertilizationLogs");
+                    b.ToTable("FertilizationLogs", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.Fertilizer", b =>
@@ -357,7 +357,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Fertilizers");
+                    b.ToTable("Fertilizers", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.GrowthLog", b =>
@@ -388,7 +388,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasIndex("PlantId");
 
-                    b.ToTable("GrowthLogs");
+                    b.ToTable("GrowthLogs", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.Keeper", b =>
@@ -485,7 +485,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasIndex("PlantId");
 
-                    b.ToTable("ObservationLogs");
+                    b.ToTable("ObservationLogs", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.Pest", b =>
@@ -514,7 +514,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Pests");
+                    b.ToTable("Pests", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.Plant", b =>
@@ -539,7 +539,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasIndex("SpeciesId");
 
-                    b.ToTable("Plants");
+                    b.ToTable("Plants", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.PlantSpecies", b =>
@@ -592,7 +592,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasIndex("PottingMixId");
 
-                    b.ToTable("PlantSpecies");
+                    b.ToTable("PlantSpecies", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.PottingMix", b =>
@@ -612,7 +612,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PottingMixes");
+                    b.ToTable("PottingMixes", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.PropagationBatch", b =>
@@ -666,7 +666,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasIndex("SpeciesId");
 
-                    b.ToTable("PropagationBatches");
+                    b.ToTable("PropagationBatches", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.PropagationMethod", b =>
@@ -686,7 +686,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PropagationMethods");
+                    b.ToTable("PropagationMethods", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.RepottingLog", b =>
@@ -724,7 +724,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasIndex("PlantId");
 
-                    b.ToTable("RepottingLogs");
+                    b.ToTable("RepottingLogs", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.Role", b =>
@@ -838,7 +838,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("SpeciesId");
 
-                    b.ToTable("SpeciesCareProfiles");
+                    b.ToTable("SpeciesCareProfiles", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.SpeciesFertilizerRecommendation", b =>
@@ -869,7 +869,7 @@ namespace PlantKeeperAPI.Database.Migrations
                     b.HasIndex("SpeciesId", "Category")
                         .IsUnique();
 
-                    b.ToTable("SpeciesFertilizerRecommendations");
+                    b.ToTable("SpeciesFertilizerRecommendations", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.SpeciesFloweringProfile", b =>
@@ -899,7 +899,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("SpeciesId");
 
-                    b.ToTable("SpeciesFloweringProfiles");
+                    b.ToTable("SpeciesFloweringProfiles", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.SpeciesPropagationMethod", b =>
@@ -941,7 +941,7 @@ namespace PlantKeeperAPI.Database.Migrations
                     b.HasIndex("SpeciesId", "PropagationMethodId")
                         .IsUnique();
 
-                    b.ToTable("SpeciesPropagationMethods");
+                    b.ToTable("SpeciesPropagationMethods", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.SpeciesToxicityProfile", b =>
@@ -969,7 +969,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("SpeciesId");
 
-                    b.ToTable("SpeciesToxicityProfiles");
+                    b.ToTable("SpeciesToxicityProfiles", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.SpeciesTreatmentRecommendation", b =>
@@ -1000,7 +1000,7 @@ namespace PlantKeeperAPI.Database.Migrations
                     b.HasIndex("SpeciesId", "TreatmentId")
                         .IsUnique();
 
-                    b.ToTable("SpeciesTreatmentRecommendations");
+                    b.ToTable("SpeciesTreatmentRecommendations", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.Treatment", b =>
@@ -1020,7 +1020,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Treatments");
+                    b.ToTable("Treatments", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.TreatmentLog", b =>
@@ -1048,7 +1048,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasIndex("TreatmentId");
 
-                    b.ToTable("TreatmentLogs");
+                    b.ToTable("TreatmentLogs", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.WateringLog", b =>
@@ -1076,7 +1076,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasIndex("PlantId");
 
-                    b.ToTable("WateringLogs");
+                    b.ToTable("WateringLogs", (string)null);
                 });
 
             modelBuilder.Entity("PlantKeeperAPI.Entities.WateringMethod", b =>
@@ -1096,7 +1096,7 @@ namespace PlantKeeperAPI.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("WateringMethods");
+                    b.ToTable("WateringMethods", (string)null);
                 });
 
             modelBuilder.Entity("BeneficialOrganismPest", b =>

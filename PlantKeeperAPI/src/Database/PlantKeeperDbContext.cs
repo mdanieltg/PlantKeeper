@@ -1,27 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PlantKeeperAPI.Entities;
 
 namespace PlantKeeperAPI.Database;
 
-/// <summary>
-/// The full generic overload, not <c>IdentityDbContext&lt;Keeper, Role, Guid&gt;</c>. The
-/// short form maps no passkey entity at all, so passkeys would have no table and the
-/// omission would only surface when a credential failed to save. Every type argument here
-/// except <see cref="IdentityUserPasskey{TKey}" /> is what the short form would have
-/// supplied anyway.
-/// </summary>
-public class PlantKeeperDbContext : IdentityDbContext<
-    Keeper,
-    Role,
-    Guid,
-    IdentityUserClaim<Guid>,
-    IdentityUserRole<Guid>,
-    IdentityUserLogin<Guid>,
-    IdentityRoleClaim<Guid>,
-    IdentityUserToken<Guid>,
-    IdentityUserPasskey<Guid>>
+public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
 {
     public PlantKeeperDbContext()
     {
@@ -63,18 +46,6 @@ public class PlantKeeperDbContext : IdentityDbContext<
         if (!optionsBuilder.IsConfigured)
             optionsBuilder.UseNpgsql();
     }
-
-    /// <summary>
-    /// Opts the Identity schema in to version 3, which is the version that maps passkeys.
-    /// <para>
-    /// Identity defaults to an older schema so an existing database is not silently
-    /// restructured by a package upgrade. The effect of leaving the default is quiet: the
-    /// context still compiles with <see cref="IdentityUserPasskey{TKey}" /> as a type
-    /// argument, still exposes a <c>UserPasskeys</c> set, and still produces a migration -
-    /// just one with no passkey table in it.
-    /// </para>
-    /// </summary>
-    protected override Version SchemaVersion => IdentitySchemaVersions.Version3;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

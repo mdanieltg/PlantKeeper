@@ -22,8 +22,8 @@ public static class IdentityServiceExtensions
     {
         services.AddIdentityCore<Keeper>(options =>
             {
-                // A keeper signs in by user name or passkey; e-mail is optional contact
-                // detail, so uniqueness across an unset value would reject the second keeper.
+                // A keeper signs in by user name; e-mail is optional contact detail, so
+                // uniqueness across an unset value would reject the second keeper.
                 options.User.RequireUniqueEmail = false;
 
                 options.Password.RequiredLength = 12;
@@ -42,7 +42,7 @@ public static class IdentityServiceExtensions
     /// The roles themselves are seeded by the migration; a keeper is not, because
     /// <c>HasData</c> would have to hard-code a security stamp and a normalized user name,
     /// and those belong to <see cref="UserManager{TUser}" />. The keeper is created with no
-    /// password and no passkey - credentials are enrolled separately.
+    /// password - credentials are set separately.
     /// </para>
     /// <para>
     /// Skipped with a warning rather than throwing when the schema is not up to date.
