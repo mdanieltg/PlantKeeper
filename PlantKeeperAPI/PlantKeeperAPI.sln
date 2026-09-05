@@ -2,6 +2,14 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlantKeeperAPI", "src\PlantKeeperAPI.csproj", "{FB51102C-6E14-4333-B24B-D774057C628C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ci", "ci", "{BE343121-8052-4F24-B5E2-4E56748B996D}"
+	ProjectSection(SolutionItems) = preProject
+		..\ci\backend.dockerfile = ..\ci\backend.dockerfile
+		..\ci\docker-compose.prod.yml = ..\ci\docker-compose.prod.yml
+		..\ci\docker-compose.yml = ..\ci\docker-compose.yml
+		..\ci\frontend.dockerfile = ..\ci\frontend.dockerfile
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
