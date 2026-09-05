@@ -39,3 +39,9 @@ app.MapControllers();
 await app.SeedFirstKeeperAsync();
 
 app.Run();
+
+/// <summary>
+/// Named so <c>WebApplicationFactory&lt;Program&gt;</c> has an entry point to bootstrap.
+/// Top-level statements generate this class as internal, which the test host cannot see.
+/// </summary>
+public partial class Program;
