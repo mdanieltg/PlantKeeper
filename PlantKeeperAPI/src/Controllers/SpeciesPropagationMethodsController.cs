@@ -2,6 +2,7 @@ using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -19,6 +20,7 @@ namespace PlantKeeperAPI.Controllers;
 [Route("/api/plant-species/{speciesId:guid}/propagation-methods")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
+[RequiresPermission(Permissions.AlmanacRead)]
 public class SpeciesPropagationMethodsController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
@@ -45,6 +47,7 @@ public class SpeciesPropagationMethodsController : ControllerBase
         return Ok(_mapper.Map<IEnumerable<SpeciesPropagationMethodDto>>(rows));
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPost]
     [ProducesResponseType<SpeciesPropagationMethodDto>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -82,6 +85,7 @@ public class SpeciesPropagationMethodsController : ControllerBase
             : NotFound();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPut("{linkId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -105,6 +109,7 @@ public class SpeciesPropagationMethodsController : ControllerBase
         return NoContent();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpDelete("{linkId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

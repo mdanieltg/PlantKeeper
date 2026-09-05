@@ -2,6 +2,7 @@ using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -14,6 +15,7 @@ namespace PlantKeeperAPI.Controllers;
 [Route("/api/pests")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
+[RequiresPermission(Permissions.AlmanacRead)]
 public class PestsController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
@@ -31,6 +33,7 @@ public class PestsController : ControllerBase
         _dbContext.Pests.OrderBy(pest => pest.Name)
     );
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPost]
     [ProducesResponseType<PestDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -56,6 +59,7 @@ public class PestsController : ControllerBase
             : NotFound();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPut("{pestId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -72,6 +76,7 @@ public class PestsController : ControllerBase
         return NoContent();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpDelete("{pestId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -102,6 +107,7 @@ public class PestsController : ControllerBase
     }
 
     /// <summary>Replaces the whole set of treatments known to work on this pest.</summary>
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPut("{pestId:guid}/treatments")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

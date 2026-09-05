@@ -1,5 +1,6 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -18,6 +19,7 @@ namespace PlantKeeperAPI.Controllers;
 [Route("/api/plant-species")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
+[RequiresPermission(Permissions.AlmanacRead)]
 public class PlantSpeciesController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
@@ -33,6 +35,7 @@ public class PlantSpeciesController : ControllerBase
     [ProducesResponseType<IEnumerable<PlantSpeciesDto>>(StatusCodes.Status200OK)]
     public async ValueTask<IEnumerable<PlantSpeciesDto>> List() => await _species.ListAsync();
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPost]
     [ProducesResponseType<PlantSpeciesDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -57,6 +60,7 @@ public class PlantSpeciesController : ControllerBase
         return species is not null ? Ok(species) : NotFound();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPut("{speciesId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -77,6 +81,7 @@ public class PlantSpeciesController : ControllerBase
         };
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpDelete("{speciesId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

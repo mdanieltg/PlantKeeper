@@ -9,13 +9,14 @@ namespace PlantKeeperAPI.Extensions;
 public static class IdentityServiceExtensions
 {
     /// <summary>
-    /// Registers the Identity stores only - <see cref="UserManager{TUser}" /> and
-    /// <see cref="RoleManager{TRole}" /> over the application DbContext.
+    /// Identity's managers over the application DbContext - <see cref="UserManager{TUser}" />,
+    /// <see cref="RoleManager{TRole}" /> and <see cref="SignInManager{TUser}" />.
     /// <para>
-    /// Deliberately <c>AddIdentityCore</c> rather than <c>AddIdentity</c>: this brings no
-    /// authentication scheme, no sign-in manager and no cookie, so adding it changes
-    /// nothing about how existing endpoints answer. Sign-in and enforcement arrive with
-    /// the auth pipeline.
+    /// Still <c>AddIdentityCore</c> rather than <c>AddIdentity</c>, which would register an
+    /// authentication scheme and a cookie of its own. Those are configured explicitly in
+    /// <see cref="AuthenticationServiceExtensions.AddCookieAuthentication" /> instead, so
+    /// the API's cookie behaviour - status codes rather than login redirects - is declared
+    /// in one place rather than half-inherited from the defaults.
     /// </para>
     /// </summary>
     public static IServiceCollection AddIdentityFoundation(this IServiceCollection services)
@@ -31,7 +32,11 @@ public static class IdentityServiceExtensions
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
             .AddRoles<Role>()
-            .AddEntityFrameworkStores<PlantKeeperDbContext>();
+            .AddEntityFrameworkStores<PlantKeeperDbContext>()
+            .AddSignInManager();
+
+        // SignInManager reads the ambient request to issue and clear the cookie.
+        services.AddHttpContextAccessor();
 
         return services;
     }
@@ -42,7 +47,8 @@ public static class IdentityServiceExtensions
     /// The roles themselves are seeded by the migration; a keeper is not, because
     /// <c>HasData</c> would have to hard-code a security stamp and a normalized user name,
     /// and those belong to <see cref="UserManager{TUser}" />. The keeper is created with no
-    /// password - credentials are set separately.
+    /// password: the first one is set through the bootstrap endpoint, which is open only
+    /// while the hash is still null.
     /// </para>
     /// <para>
     /// Skipped with a warning rather than throwing when the schema is not up to date.
@@ -93,7 +99,7 @@ public static class IdentityServiceExtensions
             throw new InvalidOperationException(
                 $"Could not assign roles to the first keeper: {string.Join("; ", assigned.Errors.Select(error => error.Description))}");
 
-        logger.LogInformation("Seeded first keeper '{UserName}' with all three roles and no credentials yet.",
+        logger.LogInformation("Seeded first keeper '{UserName}' with all three roles and no password yet.",
             keeper.UserName);
     }
 }

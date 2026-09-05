@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -13,6 +14,7 @@ namespace PlantKeeperAPI.Controllers;
 [Route("/api/observation-logs")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
+[RequiresPermission(Permissions.PlantsRead)]
 public class ObservationLogsController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
@@ -35,6 +37,7 @@ public class ObservationLogsController : ControllerBase
         return _mapper.Map<IEnumerable<ObservationLogDto>>(logs.OrderBy(log => log.Date));
     }
 
+    [RequiresPermission(Permissions.PlantsWrite)]
     [HttpPost]
     [ProducesResponseType<ObservationLogDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -63,6 +66,7 @@ public class ObservationLogsController : ControllerBase
             : NotFound();
     }
 
+    [RequiresPermission(Permissions.PlantsWrite)]
     [HttpPut("{observationLogId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -82,6 +86,7 @@ public class ObservationLogsController : ControllerBase
         return NoContent();
     }
 
+    [RequiresPermission(Permissions.PlantsWrite)]
     [HttpDelete("{observationLogId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

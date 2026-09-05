@@ -16,8 +16,10 @@ public static class ApiDocumentationExtensions
     {
         if (!app.Environment.IsDevelopment()) return app;
 
-        app.MapOpenApi();
-        app.MapScalarApiReference(options => options.WithTitle("PlantKeeper API"));
+        // AllowAnonymous, because the fallback authorization policy would otherwise put a
+        // 401 in front of both. They stay Development-only either way.
+        app.MapOpenApi().AllowAnonymous();
+        app.MapScalarApiReference(options => options.WithTitle("PlantKeeper API")).AllowAnonymous();
 
         return app;
     }

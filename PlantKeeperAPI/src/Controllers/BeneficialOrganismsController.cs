@@ -2,6 +2,7 @@ using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -14,6 +15,7 @@ namespace PlantKeeperAPI.Controllers;
 [Route("/api/beneficial-organisms")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
+[RequiresPermission(Permissions.AlmanacRead)]
 public class BeneficialOrganismsController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
@@ -31,6 +33,7 @@ public class BeneficialOrganismsController : ControllerBase
         _dbContext.BeneficialOrganisms.OrderBy(organism => organism.Name)
     );
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPost]
     [ProducesResponseType<BeneficialOrganismDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -56,6 +59,7 @@ public class BeneficialOrganismsController : ControllerBase
             : NotFound();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPut("{organismId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -73,6 +77,7 @@ public class BeneficialOrganismsController : ControllerBase
         return NoContent();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpDelete("{organismId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -106,6 +111,7 @@ public class BeneficialOrganismsController : ControllerBase
     }
 
     /// <summary>Replaces the whole set of collection species that support this organism.</summary>
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPut("{organismId:guid}/species")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -150,6 +156,7 @@ public class BeneficialOrganismsController : ControllerBase
     }
 
     /// <summary>Replaces the whole set of pests this organism preys on.</summary>
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPut("{organismId:guid}/pests")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

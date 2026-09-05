@@ -2,6 +2,7 @@ using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -19,6 +20,7 @@ namespace PlantKeeperAPI.Controllers;
 [Route("/api/plant-species/{speciesId:guid}/flowering")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
+[RequiresPermission(Permissions.AlmanacRead)]
 public class SpeciesFloweringProfileController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
@@ -44,6 +46,7 @@ public class SpeciesFloweringProfileController : ControllerBase
             : NotFound();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPut]
     [ProducesResponseType<SpeciesFloweringProfileDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<SpeciesFloweringProfileDto>(StatusCodes.Status201Created)]
@@ -92,6 +95,7 @@ public class SpeciesFloweringProfileController : ControllerBase
             : Ok(profileToReturn);
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpDelete]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

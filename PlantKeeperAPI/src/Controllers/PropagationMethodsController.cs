@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -12,6 +13,7 @@ namespace PlantKeeperAPI.Controllers;
 [Route("/api/propagation-methods")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
+[RequiresPermission(Permissions.AlmanacRead)]
 public class PropagationMethodsController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
@@ -29,6 +31,7 @@ public class PropagationMethodsController : ControllerBase
         _dbContext.PropagationMethods.OrderBy(method => method.Name)
     );
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPost]
     [ProducesResponseType<PropagationMethodDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -54,6 +57,7 @@ public class PropagationMethodsController : ControllerBase
             : NotFound();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPut("{methodId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -70,6 +74,7 @@ public class PropagationMethodsController : ControllerBase
         return NoContent();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpDelete("{methodId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

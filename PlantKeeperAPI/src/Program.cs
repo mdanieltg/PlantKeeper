@@ -14,6 +14,8 @@ builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.A
 
 builder.Services.AddDatabase(builder.Configuration, builder.Environment);
 builder.Services.AddIdentityFoundation();
+builder.Services.AddCookieAuthentication(builder.Environment);
+builder.Services.AddPermissionAuthorization();
 builder.Services.AddCorsPolicies();
 builder.Services.AddMapping();
 builder.Services.AddApiDocumentation();
@@ -23,14 +25,15 @@ builder.Services.AddScoped<IPlantSpeciesService, PlantSpeciesService>();
 WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseProxyHeaders();
+
 app.UseApiDocumentation();
 
 if (!app.Environment.IsDevelopment()) app.UseHsts();
 
 app.UseCorsPolicies();
 
-// app.UseAuthentication();
-app.UseAuthorization();
+app.UseAuthenticationPipeline();
 app.MapControllers();
 
 await app.SeedFirstKeeperAsync();

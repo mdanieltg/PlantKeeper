@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -13,6 +14,7 @@ namespace PlantKeeperAPI.Controllers;
 [Route("/api/propagation-batches")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
+[RequiresPermission(Permissions.PlantsRead)]
 public class PropagationBatchesController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
@@ -35,6 +37,7 @@ public class PropagationBatchesController : ControllerBase
         return _mapper.Map<IEnumerable<PropagationBatchDto>>(batches.OrderBy(batch => batch.StartDate));
     }
 
+    [RequiresPermission(Permissions.PlantsWrite)]
     [HttpPost]
     [ProducesResponseType<PropagationBatchDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -63,6 +66,7 @@ public class PropagationBatchesController : ControllerBase
             : NotFound();
     }
 
+    [RequiresPermission(Permissions.PlantsWrite)]
     [HttpPut("{propagationBatchId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -83,6 +87,7 @@ public class PropagationBatchesController : ControllerBase
         return NoContent();
     }
 
+    [RequiresPermission(Permissions.PlantsWrite)]
     [HttpDelete("{propagationBatchId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

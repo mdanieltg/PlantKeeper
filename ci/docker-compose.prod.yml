@@ -10,6 +10,7 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Production: ${CONNECTION_STRING}
+      Bootstrap__Secret: ${BOOTSTRAP_SECRET:-}
     expose:
       - "8080"
     networks:

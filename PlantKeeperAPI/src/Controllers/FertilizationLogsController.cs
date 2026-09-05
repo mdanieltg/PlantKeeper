@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -13,6 +14,7 @@ namespace PlantKeeperAPI.Controllers;
 [Route("/api/fertilization-logs")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
+[RequiresPermission(Permissions.PlantsRead)]
 public class FertilizationLogsController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
@@ -35,6 +37,7 @@ public class FertilizationLogsController : ControllerBase
         return _mapper.Map<IEnumerable<FertilizationLogDto>>(logs.OrderBy(log => log.Date));
     }
 
+    [RequiresPermission(Permissions.PlantsWrite)]
     [HttpPost]
     [ProducesResponseType<FertilizationLogDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -63,6 +66,7 @@ public class FertilizationLogsController : ControllerBase
             : NotFound();
     }
 
+    [RequiresPermission(Permissions.PlantsWrite)]
     [HttpPut("{fertilizationLogId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -83,6 +87,7 @@ public class FertilizationLogsController : ControllerBase
         return NoContent();
     }
 
+    [RequiresPermission(Permissions.PlantsWrite)]
     [HttpDelete("{fertilizationLogId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

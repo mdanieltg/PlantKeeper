@@ -2,6 +2,7 @@ using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -19,6 +20,7 @@ namespace PlantKeeperAPI.Controllers;
 [Route("/api/plant-species/{speciesId:guid}/treatment-recommendations")]
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
+[RequiresPermission(Permissions.AlmanacRead)]
 public class SpeciesTreatmentRecommendationsController : ControllerBase
 {
     private readonly PlantKeeperDbContext _dbContext;
@@ -46,6 +48,7 @@ public class SpeciesTreatmentRecommendationsController : ControllerBase
         return Ok(_mapper.Map<IEnumerable<SpeciesTreatmentRecommendationDto>>(rows));
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPost]
     [ProducesResponseType<SpeciesTreatmentRecommendationDto>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -83,6 +86,7 @@ public class SpeciesTreatmentRecommendationsController : ControllerBase
             : NotFound();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpPut("{recommendationId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -106,6 +110,7 @@ public class SpeciesTreatmentRecommendationsController : ControllerBase
         return NoContent();
     }
 
+    [RequiresPermission(Permissions.AlmanacPropose)]
     [HttpDelete("{recommendationId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
