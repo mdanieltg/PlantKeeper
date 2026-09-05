@@ -30,7 +30,14 @@ public static class AuthenticationServiceExtensions
         {
             options.Cookie.Name = "plantkeeper.session";
             options.Cookie.HttpOnly = true;
-            options.Cookie.SameSite = SameSiteMode.Lax;
+
+            // Strict, not the usual Lax. There is no antiforgery token anywhere in this
+            // API, so the cookie's own send rules are a load-bearing CSRF defence rather
+            // than a nicety. Strict costs nothing here: nginx serves a static document, and
+            // the SPA's own /api calls afterwards are same-site, so they still carry the
+            // cookie. It would only bite on a route that needs the session at
+            // document-request time after an off-site click, and none exists.
+            options.Cookie.SameSite = SameSiteMode.Strict;
 
             // In production the app and the API are one origin behind nginx, which
             // terminates TLS; SameAsRequest in development keeps plain-HTTP localhost
