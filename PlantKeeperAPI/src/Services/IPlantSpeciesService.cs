@@ -16,7 +16,7 @@ public record SpeciesWriteResult(SpeciesWriteStatus Status, PlantSpeciesDto? Spe
 
 /// <summary>
 /// The species aggregate. Care and toxicity profiles are required in C# but the foreign
-/// key sits on the dependent, so MySQL cannot enforce their presence - writing the whole
+/// key sits on the dependent, so the database cannot enforce their presence - writing the whole
 /// aggregate in one place is what keeps that guarantee real.
 /// </summary>
 public interface IPlantSpeciesService

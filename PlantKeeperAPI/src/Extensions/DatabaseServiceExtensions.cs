@@ -15,7 +15,6 @@ public static class DatabaseServiceExtensions
             "QAE" => configuration.GetConnectionString("QAE"),
             _ => configuration.GetConnectionString("Dev")
         };
-        return services.AddDbContext<PlantKeeperDbContext>(options =>
-            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+        return services.AddDbContext<PlantKeeperDbContext>(options => options.UseNpgsql(connectionString));
     }
 }

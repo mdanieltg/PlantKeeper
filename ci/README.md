@@ -7,10 +7,10 @@ Container build and orchestration for PlantKeeper, following the layout used in 
 | `backend.dockerfile` | ASP.NET Core API — `sdk:10.0` build, `aspnet:10.0` runtime |
 | `frontend.dockerfile` | Angular app — `node:24-alpine` build, served by `nginx:alpine` |
 | `nginx.conf` | SPA fallback routing, and `/api` proxied to the backend |
-| `docker-compose.yml` | Development — builds from source, includes MySQL |
+| `docker-compose.yml` | Development — builds from source, includes PostgreSQL |
 | `docker-compose.prod.yml` | Production — prebuilt registry images, external database |
 | `.env.example` | Template for `.env`, which is gitignored |
-| `create-service-user.sql` | Least-privilege MySQL account for the API, granted per table |
+| `create-service-user.sql` | Least-privilege PostgreSQL role for the API, granted per table |
 
 Both dockerfiles are built with the **repository root** as context, so run compose with
 the `-f ci/...` paths shown below rather than from inside this directory.
@@ -26,9 +26,10 @@ The app is served at <http://localhost:3000>. The API is not published; the brow
 calls `/api/...` on the same origin and nginx proxies it to `backend:8080`. That is also
 why no CORS configuration is involved.
 
-MySQL is **not** published to the host either — it is reachable only as `db:3306` inside
-the compose network. If you want Rider or a `mysql` client to reach it, add a ports
-mapping to the `db` service.
+PostgreSQL **is** published, but to loopback only: `127.0.0.1:5432:5432`, so Rider or a
+`psql` client on this machine can reach it while nothing outside can. Keep the
+`127.0.0.1` prefix — a bare `5432:5432` binds every interface, and Docker publishes
+past the host firewall. Inside the compose network it is `postgres:5432`.
 
 ### Applying migrations
 
@@ -40,7 +41,7 @@ whenever a migration is added:
 docker run --rm -v "$PWD/PlantKeeperAPI:/api:ro" \
   --network plantkeeper_plantkeeper-net \
   -e ASPNETCORE_ENVIRONMENT=Development \
-  -e "ConnectionStrings__Dev=Server=db;Port=3306;Database=plants;Uid=root;Pwd=YOUR_PASSWORD" \
+  -e "ConnectionStrings__Dev=Host=postgres;Port=5432;Database=plants;Username=postgres;Password=YOUR_PASSWORD" \
   mcr.microsoft.com/dotnet/sdk:10.0 sh -c '
     cp -r /api /work && rm -rf /work/src/obj /work/src/bin &&
     dotnet tool install -g dotnet-ef >/dev/null 2>&1 &&
@@ -57,25 +58,28 @@ Three details in there are not obvious, and each one breaks the command if dropp
   read-only and the host's `obj/project.assets.json` records host NuGet paths that do not
   exist in the container, so restoring against the mount fails and restoring *into* it
   would corrupt your local build.
-- **The connection string is passed as `ConnectionStrings__Dev`, not `--connection`.**
-  EF resolves the DbContext through the application's own service provider, and
-  `AddDatabase` calls `ServerVersion.AutoDetect` while registering services — before
-  `--connection` would ever be applied. Without the environment variable the command
-  fails with "Unable to connect to any of the specified MySQL hosts".
+- **The connection string is passed as `ConnectionStrings__Dev`.** EF resolves the
+  DbContext through the application's own service provider, and `AddDatabase` picks the
+  configuration key from the environment name — so `ASPNETCORE_ENVIRONMENT=Development`
+  and `ConnectionStrings__Dev` have to agree. This is the combination that is actually
+  verified; without the environment variable the connection string is null and the
+  command fails on connect.
 
 ### A least-privilege service account
 
-`create-service-user.sql` creates a `plantkeeper` MySQL user granted only
-`SELECT, INSERT, UPDATE, DELETE`, table by table, across the 26 application tables. It
-holds no DDL rights and no access to `__EFMigrationsHistory`, so the running API cannot
-change the schema or misreport what has been migrated.
+`create-service-user.sql` creates a `plantkeeper` PostgreSQL role granted only
+`SELECT, INSERT, UPDATE, DELETE`, table by table, across the 26 application tables (the
+three payload-free join tables get no `UPDATE`). It holds no DDL rights and no access to
+`__EFMigrationsHistory`, so the running API cannot change the schema or misreport what
+has been migrated. Every table name in that file is double-quoted on purpose: Postgres
+folds unquoted identifiers to lower case, and EF creates them in PascalCase.
 
 ```bash
 # edit CHANGE_ME first, then:
-docker compose -f ci/docker-compose.yml exec -T db mysql -uroot -p < ci/create-service-user.sql
+docker compose -f ci/docker-compose.yml exec -T postgres psql -U postgres -d plants < ci/create-service-user.sql
 ```
 
-Then point `CONNECTION_STRING` in `.env` at it (`Uid=plantkeeper`) and recreate the
+Then point `CONNECTION_STRING` in `.env` at it (`Username=plantkeeper`) and recreate the
 backend. Migrations must keep using an administrative account — the command above
 deliberately fails as `plantkeeper`.
 
@@ -104,7 +108,7 @@ docker compose -f ci/docker-compose.yml down -v  # drop the volume too
 
 `docker-compose.prod.yml` pulls `localhost:5000/plantkeeper-{backend,frontend}:latest`
 from a local registry and joins an existing external `app-network`. It deliberately
-contains **no database service** — production is expected to point at a MySQL that
+contains **no database service** — production is expected to point at a PostgreSQL that
 already exists, via `CONNECTION_STRING` in `.env`.
 
 ```bash

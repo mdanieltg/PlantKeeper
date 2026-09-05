@@ -39,8 +39,11 @@ public class PlantKeeperDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
+        // Design-time only: `dotnet ef` builds the context through the parameterless
+        // constructor and needs a provider registered to produce the model. It never
+        // opens a connection here, so no connection string is required.
         if (!optionsBuilder.IsConfigured)
-            optionsBuilder.UseMySql("", ServerVersion.AutoDetect(""));
+            optionsBuilder.UseNpgsql();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -25,7 +25,7 @@ The repository is a monorepo holding two independently developed projects:
 
 | Project | Stack | Role |
 |---|---|---|
-| `PlantKeeperAPI/` | ASP.NET Core 10, EF Core, MySQL | REST API and the whole domain model |
+| `PlantKeeperAPI/` | ASP.NET Core 10, EF Core 10, PostgreSQL | REST API and the whole domain model |
 | `PlantKeeperWebApp/` | Angular 18 | Client (scaffold only — see [Frontend](#3-frontend)) |
 
 ### Branch model
@@ -45,8 +45,8 @@ Never assume a frontend interface reflects the current API contract.
 | Component | Version | Notes |
 |---|---|---|
 | Target framework | .NET 10 | |
-| EF Core | 9.0.0 | via `Pomelo.EntityFrameworkCore.MySql` |
-| Database | MySQL 8.0.38 | server version auto-detected in `DatabaseServiceExtensions` |
+| EF Core | 10.0.11 | via `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3 |
+| Database | PostgreSQL 17 | migrated off MySQL/Pomelo, which has no EF Core 10 release |
 | Object mapping | Mapster 7.4.0 | replaced AutoMapper in commit `339e341`; strict, see [2.9](#29-object-mapping) |
 | API docs | Scalar 2.17.2 | replaced Swashbuckle; document from `Microsoft.AspNetCore.OpenApi` 10.0.11 |
 
@@ -153,7 +153,7 @@ HTTP request
   -> Controller          # ASP.NET routing, validation, status codes
   -> IMapper (Mapster)   # Input model -> Entity
   -> PlantKeeperDbContext
-  -> MySQL
+  -> PostgreSQL
 ```
 
 There is **no repository layer and no generic service layer**. Controllers inject
@@ -166,7 +166,7 @@ indirection without removing any.
 invalid data:
 [`PlantSpeciesService`](PlantKeeperAPI/src/Services/PlantSpeciesService.cs) owns the
 species aggregate. Two invariants span more than one table and neither can be delegated
-to MySQL:
+to the database:
 
 1. **Care and toxicity are required, but the database cannot say so.** The foreign key
    sits on the dependent, so nothing stops a species row existing alone. `InputPlantSpecies`
@@ -244,12 +244,13 @@ is already applied to the Dev database, those two lookup tables exist there and 
 The schema totals **26 tables**: 23 entity tables plus three implicit many-to-many
 join tables.
 
-> **Trap:** `PlantKeeperDbContext` has a parameterless constructor and an
-> `OnConfiguring` override calling `UseMySql("", ServerVersion.AutoDetect(""))`. That
-> would throw on an empty connection string if ever reached. It exists only to satisfy
-> design-time tooling, and the tooling does not in fact need it — `dotnet ef` resolves
-> the context through the application's DI container. It is effectively dead code
-> guarding against a case that cannot occur, and removing it would be safe.
+> **Design-time fallback:** `PlantKeeperDbContext` has a parameterless constructor and
+> an `OnConfiguring` override calling `UseNpgsql()` with no connection string. Building
+> the model needs a provider registered but never opens a connection, so no string is
+> required — which is why this stopped being the trap it was under Pomelo, where the
+> equivalent line passed an empty string to `ServerVersion.AutoDetect`. `dotnet ef`
+> normally resolves the context through the application's DI container, so the path is
+> rarely taken.
 
 ### 2.7 Domain model
 
@@ -564,7 +565,7 @@ Signal Forms throughout: `form(model, schema)`, `[formField]` bindings, and
 
 **The species aggregate is the interesting case.** The API requires `care` and
 `toxicity` nested inside `InputPlantSpecies` because the foreign key sits on the
-dependent and MySQL cannot enforce their presence — so the form writes the whole
+dependent and the database cannot enforce their presence — so the form writes the whole
 aggregate. Flowering is optional as a whole but complete when present, which collides
 with constraint 1: the model therefore holds an always-present `flowering` object plus a
 `hasFlowering` boolean, and sends `null` at the edge. `applyWhen` scopes the flowering
@@ -647,23 +648,24 @@ Three things about the stack are deliberate and easy to get wrong:
 
 - **nginx copies `dist/PlantKeeperWebApp/browser`,** not `dist`. The Angular application
   builder nests its output; copying the parent serves a directory listing.
-- **MySQL is not published to the host.** It is reachable only as `db:3306` inside
-  `plantkeeper-net`, so anything touching the database — `dotnet ef` included — must run
-  inside that network.
-- **`db` has a healthcheck and the backend waits on `service_healthy`.** Plain
-  `depends_on` only orders startup, and `UseMySql(..., ServerVersion.AutoDetect(...))`
-  opens a connection while services are being registered. A backend that wins the race
-  fails on its first request instead of retrying.
+- **PostgreSQL is published to loopback only,** `127.0.0.1:5432:5432`, so host tooling
+  can reach it and nothing outside can. Inside the network it is `postgres:5432`. Keep
+  the `127.0.0.1` prefix — Docker publishes past the host firewall without it.
+- **`postgres` has a healthcheck and the backend waits on `service_healthy`.** Plain
+  `depends_on` only orders startup. Npgsql opens no connection while services are being
+  registered, so a backend that wins the race boots happily and then fails on its first
+  request — waiting for healthy keeps the failure at `up` time, where it is visible.
 
 **Migrations are not automated.** A fresh volume produces an empty schema, and nothing
 in `Program.cs` calls `Migrate()`. `ci/README.md` carries the one command that works;
-note that it passes the connection string as `ConnectionStrings__Dev` rather than
-`--connection`, because EF resolves the DbContext through the application's own service
-provider and `AddDatabase` calls `AutoDetect` before `--connection` would ever apply.
+note that it passes the connection string as `ConnectionStrings__Dev`: EF resolves the
+DbContext through the application's own service provider, and `AddDatabase` selects the
+configuration key from the environment name, so the variable and
+`ASPNETCORE_ENVIRONMENT` have to agree.
 
 Production mirrors Wallet: prebuilt images pulled from `localhost:5000`, `env_file`,
 `restart: unless-stopped`, an external `app-network`, and **no database service** — the
-deployment is expected to point at a MySQL that already exists.
+deployment is expected to point at a PostgreSQL that already exists.
 
 ## 5. Open decisions
 
