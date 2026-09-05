@@ -2,11 +2,13 @@ using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using PlantKeeperAPI.Authorization;
-using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Database;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Enums;
 using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Models;
+using PlantKeeperAPI.Services;
 
 namespace PlantKeeperAPI.Controllers;
 
@@ -17,12 +19,15 @@ namespace PlantKeeperAPI.Controllers;
 [RequiresPermission(Permissions.AlmanacRead)]
 public class FertilizersController : ControllerBase
 {
+    private readonly IAlmanacProposalService _almanac;
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public FertilizersController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public FertilizersController(PlantKeeperDbContext dbContext, IMapper mapper,
+        IAlmanacProposalService almanac)
     {
         _dbContext = dbContext;
+        _almanac = almanac;
         _mapper = mapper;
     }
 
@@ -37,8 +42,12 @@ public class FertilizersController : ControllerBase
     [ProducesResponseType<FertilizerDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<ActionResult<FertilizerDto>> Create([FromBody] InputFertilizer fertilizer)
     {
+        if (await _almanac.SubmitAsync(AlmanacTargets.Fertilizer, AlmanacChangeOperation.Create,
+                fertilizer) is { } queued) return Accepted(queued);
+
         var fertilizerToCreate = _mapper.Map<Fertilizer>(fertilizer);
         await _dbContext.Fertilizers.AddAsync(fertilizerToCreate);
         await _dbContext.SaveChangesAsync();
@@ -64,10 +73,14 @@ public class FertilizersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Update([FromRoute] Guid fertilizerId, [FromBody] InputFertilizer fertilizer)
     {
         Fertilizer? currentFertilizer = await _dbContext.Fertilizers.FindAsync(fertilizerId);
         if (currentFertilizer is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.Fertilizer, AlmanacChangeOperation.Update,
+                fertilizer, currentFertilizer.Id, currentFertilizer.Version) is { } queued) return Accepted(queued);
 
         _mapper.Map(fertilizer, currentFertilizer);
         await _dbContext.SaveChangesAsync();
@@ -80,10 +93,14 @@ public class FertilizersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid fertilizerId)
     {
         Fertilizer? fertilizer = await _dbContext.Fertilizers.FindAsync(fertilizerId);
         if (fertilizer is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.Fertilizer, AlmanacChangeOperation.Delete,
+                null, fertilizer.Id, fertilizer.Version) is { } queued) return Accepted(queued);
 
         return await this.DeleteAsync(_dbContext, fertilizer) ?? NoContent();
     }

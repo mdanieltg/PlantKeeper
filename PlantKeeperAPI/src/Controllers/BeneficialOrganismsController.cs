@@ -3,11 +3,13 @@ using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PlantKeeperAPI.Authorization;
-using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Database;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Enums;
 using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Models;
+using PlantKeeperAPI.Services;
 
 namespace PlantKeeperAPI.Controllers;
 
@@ -18,12 +20,15 @@ namespace PlantKeeperAPI.Controllers;
 [RequiresPermission(Permissions.AlmanacRead)]
 public class BeneficialOrganismsController : ControllerBase
 {
+    private readonly IAlmanacProposalService _almanac;
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public BeneficialOrganismsController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public BeneficialOrganismsController(PlantKeeperDbContext dbContext, IMapper mapper,
+        IAlmanacProposalService almanac)
     {
         _dbContext = dbContext;
+        _almanac = almanac;
         _mapper = mapper;
     }
 
@@ -38,8 +43,12 @@ public class BeneficialOrganismsController : ControllerBase
     [ProducesResponseType<BeneficialOrganismDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<ActionResult<BeneficialOrganismDto>> Create([FromBody] InputBeneficialOrganism organism)
     {
+        if (await _almanac.SubmitAsync(AlmanacTargets.BeneficialOrganism, AlmanacChangeOperation.Create,
+                organism) is { } queued) return Accepted(queued);
+
         var organismToCreate = _mapper.Map<BeneficialOrganism>(organism);
         await _dbContext.BeneficialOrganisms.AddAsync(organismToCreate);
         await _dbContext.SaveChangesAsync();
@@ -65,11 +74,15 @@ public class BeneficialOrganismsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Update([FromRoute] Guid organismId,
         [FromBody] InputBeneficialOrganism organism)
     {
         BeneficialOrganism? currentOrganism = await _dbContext.BeneficialOrganisms.FindAsync(organismId);
         if (currentOrganism is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.BeneficialOrganism, AlmanacChangeOperation.Update,
+                organism, currentOrganism.Id, currentOrganism.Version) is { } queued) return Accepted(queued);
 
         _mapper.Map(organism, currentOrganism);
         await _dbContext.SaveChangesAsync();
@@ -82,10 +95,14 @@ public class BeneficialOrganismsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid organismId)
     {
         BeneficialOrganism? organism = await _dbContext.BeneficialOrganisms.FindAsync(organismId);
         if (organism is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.BeneficialOrganism, AlmanacChangeOperation.Delete,
+                null, organism.Id, organism.Version) is { } queued) return Accepted(queued);
 
         return await this.DeleteAsync(_dbContext, organism) ?? NoContent();
     }
@@ -115,6 +132,7 @@ public class BeneficialOrganismsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> ReplaceSpecies([FromRoute] Guid organismId,
         [FromBody] IReadOnlyCollection<Guid> speciesIds)
     {
@@ -126,6 +144,9 @@ public class BeneficialOrganismsController : ControllerBase
 
         if (!await ModelState.RequireAllExistAsync<PlantSpecies>(_dbContext, speciesIds, "speciesIds"))
             return UnprocessableEntity(new ValidationProblemDetails(ModelState));
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.OrganismSpecies, AlmanacChangeOperation.Update,
+                speciesIds, organism.Id, organism.Version) is { } queued) return Accepted(queued);
 
         List<PlantSpecies> species = await _dbContext.PlantSpecies
             .Where(entry => speciesIds.Contains(entry.Id))
@@ -160,6 +181,7 @@ public class BeneficialOrganismsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> ReplacePests([FromRoute] Guid organismId,
         [FromBody] IReadOnlyCollection<Guid> pestIds)
     {
@@ -171,6 +193,9 @@ public class BeneficialOrganismsController : ControllerBase
 
         if (!await ModelState.RequireAllExistAsync<Pest>(_dbContext, pestIds, "pestIds"))
             return UnprocessableEntity(new ValidationProblemDetails(ModelState));
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.OrganismPests, AlmanacChangeOperation.Update,
+                pestIds, organism.Id, organism.Version) is { } queued) return Accepted(queued);
 
         List<Pest> pests = await _dbContext.Pests
             .Where(pest => pestIds.Contains(pest.Id))

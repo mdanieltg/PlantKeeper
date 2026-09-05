@@ -2,11 +2,13 @@ using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using PlantKeeperAPI.Authorization;
-using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Database;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Enums;
 using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Models;
+using PlantKeeperAPI.Services;
 
 namespace PlantKeeperAPI.Controllers;
 
@@ -17,12 +19,15 @@ namespace PlantKeeperAPI.Controllers;
 [RequiresPermission(Permissions.AlmanacRead)]
 public class PottingMixesController : ControllerBase
 {
+    private readonly IAlmanacProposalService _almanac;
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public PottingMixesController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public PottingMixesController(PlantKeeperDbContext dbContext, IMapper mapper,
+        IAlmanacProposalService almanac)
     {
         _dbContext = dbContext;
+        _almanac = almanac;
         _mapper = mapper;
     }
 
@@ -37,8 +42,12 @@ public class PottingMixesController : ControllerBase
     [ProducesResponseType<PottingMixDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<ActionResult<PottingMixDto>> Create([FromBody] InputPottingMix pottingMix)
     {
+        if (await _almanac.SubmitAsync(AlmanacTargets.PottingMix, AlmanacChangeOperation.Create,
+                pottingMix) is { } queued) return Accepted(queued);
+
         var pottingMixToCreate = _mapper.Map<PottingMix>(pottingMix);
         await _dbContext.PottingMixes.AddAsync(pottingMixToCreate);
         await _dbContext.SaveChangesAsync();
@@ -64,10 +73,14 @@ public class PottingMixesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Update([FromRoute] Guid pottingMixId, [FromBody] InputPottingMix pottingMix)
     {
         PottingMix? currentPottingMix = await _dbContext.PottingMixes.FindAsync(pottingMixId);
         if (currentPottingMix is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.PottingMix, AlmanacChangeOperation.Update,
+                pottingMix, currentPottingMix.Id, currentPottingMix.Version) is { } queued) return Accepted(queued);
 
         _mapper.Map(pottingMix, currentPottingMix);
         await _dbContext.SaveChangesAsync();
@@ -80,10 +93,14 @@ public class PottingMixesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid pottingMixId)
     {
         PottingMix? pottingMix = await _dbContext.PottingMixes.FindAsync(pottingMixId);
         if (pottingMix is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.PottingMix, AlmanacChangeOperation.Delete,
+                null, pottingMix.Id, pottingMix.Version) is { } queued) return Accepted(queued);
 
         return await this.DeleteAsync(_dbContext, pottingMix) ?? NoContent();
     }

@@ -43,6 +43,20 @@ public static class TypeAdapterExtensions
         where TDestination : IKeeperOwned =>
         setter.Ignore(nameof(IKeeperOwned.KeeperId));
 
+    /// <summary>
+    /// Ignores <see cref="IAlmanacVersioned.Version" /> on the destination.
+    /// <para>
+    /// The version belongs to the database, not to the request: it is bumped in
+    /// <c>SaveChanges</c> and a body that could set it could also forge one, defeating the
+    /// staleness check a proposal is approved against. Same shape as
+    /// <see cref="IgnoreOwnership{TSource,TDestination}" /> and for the same reason.
+    /// </para>
+    /// </summary>
+    public static TypeAdapterSetter<TSource, TDestination> IgnoreVersion<TSource, TDestination>(
+        this TypeAdapterSetter<TSource, TDestination> setter)
+        where TDestination : IAlmanacVersioned =>
+        setter.Ignore(nameof(IAlmanacVersioned.Version));
+
     private static bool IsNavigation(Type type)
     {
         if (IsEntity(type)) return true;

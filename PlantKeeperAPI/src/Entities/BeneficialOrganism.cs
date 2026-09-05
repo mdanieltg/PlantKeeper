@@ -4,9 +4,12 @@ using PlantKeeperAPI.Enums;
 namespace PlantKeeperAPI.Entities;
 
 [DebuggerDisplay("Beneficial organism: {Name}")]
-public class BeneficialOrganism
+public class BeneficialOrganism : IAlmanacVersioned
 {
     public Guid Id { get; set; }
+
+    /// <summary>Bumped on every saved change. See <see cref="IAlmanacVersioned" />.</summary>
+    public int Version { get; set; }
     public required string Name { get; set; }
     public string? ScientificName { get; set; }
     public BeneficialRole Role { get; set; }

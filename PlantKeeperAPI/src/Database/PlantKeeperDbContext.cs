@@ -18,6 +18,7 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
 
     public DbSet<PlantSpecies> PlantSpecies { get; init; }
     public DbSet<Plant> Plants { get; init; }
+    public DbSet<AlmanacChangeProposal> AlmanacChangeProposals { get; init; }
     public DbSet<PottingMix> PottingMixes { get; init; }
     public DbSet<Climate> Climates { get; init; }
     public DbSet<WateringMethod> WateringMethods { get; init; }
@@ -43,12 +44,14 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
     public override int SaveChanges()
     {
         StampOwnership();
+        StampVersions();
         return base.SaveChanges();
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         StampOwnership();
+        StampVersions();
         return base.SaveChangesAsync(cancellationToken);
     }
 
@@ -69,6 +72,29 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
     /// path is unreachable; it fails closed if that ever stops being true.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Bumps <see cref="IAlmanacVersioned.Version" /> on every almanac row being changed.
+    /// <para>
+    /// Central, so no caller can forget and no caller can forge one. The version is what a
+    /// proposal is written against, so a row that changes without bumping would let a stale
+    /// proposal apply silently - the exact failure this phase exists to prevent.
+    /// </para>
+    /// </summary>
+    private void StampVersions()
+    {
+        foreach (EntityEntry<IAlmanacVersioned> entry in ChangeTracker.Entries<IAlmanacVersioned>())
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.Version = 1;
+                    break;
+
+                case EntityState.Modified:
+                    entry.Entity.Version++;
+                    break;
+            }
+    }
+
     private void StampOwnership()
     {
         foreach (EntityEntry<IKeeperOwned> entry in ChangeTracker.Entries<IKeeperOwned>())
@@ -677,6 +703,51 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.Property(log => log.Notes)
                 .HasMaxLength(300);
         });
+
+        modelBuilder.Entity<AlmanacChangeProposal>(builder =>
+        {
+            builder.HasKey(proposal => proposal.Id);
+
+            // No navigation to Keeper, and Restrict rather than Cascade: the queue is the
+            // almanac's history, and deleting the account of someone who once proposed a
+            // change must not erase the record of the change.
+            builder.HasOne<Keeper>()
+                .WithMany()
+                .HasForeignKey(proposal => proposal.ProposedById)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne<Keeper>()
+                .WithMany()
+                .HasForeignKey(proposal => proposal.ReviewedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // The moderation queue is one query: pending, oldest first.
+            builder.HasIndex(proposal => new { proposal.Status, proposal.ProposedAt });
+
+            builder.Property(proposal => proposal.TargetType)
+                .HasMaxLength(50)
+                .IsRequired();
+            builder.Property(proposal => proposal.Operation)
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
+            builder.Property(proposal => proposal.Status)
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
+
+            // jsonb, not text: it is JSON, and Postgres can be asked about it later without
+            // a migration. No length cap - a species aggregate is the biggest body the API
+            // accepts and there is no useful number to pick.
+            builder.Property(proposal => proposal.ProposedState)
+                .HasColumnType("jsonb");
+
+            builder.Property(proposal => proposal.ReviewNote)
+                .HasMaxLength(500);
+        });
+
+        // No query filter on proposals. They are almanac history, shared like the almanac
+        // itself; who may read them is an authorization question, not a tenancy one.
 
         // Tenancy, last: every IKeeperOwned type gets its column, its index, its foreign key
         // and its filter from one place, so the eight cannot drift apart.

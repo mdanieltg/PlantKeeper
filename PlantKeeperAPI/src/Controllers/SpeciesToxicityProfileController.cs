@@ -3,9 +3,11 @@ using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PlantKeeperAPI.Authorization;
-using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Database;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Enums;
+using PlantKeeperAPI.Services;
 using PlantKeeperAPI.Models;
 
 namespace PlantKeeperAPI.Controllers;
@@ -26,12 +28,15 @@ namespace PlantKeeperAPI.Controllers;
 [RequiresPermission(Permissions.AlmanacRead)]
 public class SpeciesToxicityProfileController : ControllerBase
 {
+    private readonly IAlmanacProposalService _almanac;
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public SpeciesToxicityProfileController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public SpeciesToxicityProfileController(PlantKeeperDbContext dbContext, IMapper mapper,
+        IAlmanacProposalService almanac)
     {
         _dbContext = dbContext;
+        _almanac = almanac;
         _mapper = mapper;
     }
 
@@ -56,6 +61,7 @@ public class SpeciesToxicityProfileController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<ActionResult<SpeciesToxicityProfileDto>> Upsert([FromRoute] Guid speciesId,
         [FromBody] InputSpeciesToxicityProfile input)
     {
@@ -63,6 +69,9 @@ public class SpeciesToxicityProfileController : ControllerBase
 
         SpeciesToxicityProfile? profile = await _dbContext.SpeciesToxicityProfiles
             .FirstOrDefaultAsync(entry => entry.SpeciesId == speciesId);
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.SpeciesToxicityProfile, AlmanacChangeOperation.Update,
+                input, speciesId, profile?.Version) is { } queued) return Accepted(queued);
 
         bool created = profile is null;
 

@@ -3,9 +3,11 @@ using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PlantKeeperAPI.Authorization;
-using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Database;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Enums;
+using PlantKeeperAPI.Services;
 using PlantKeeperAPI.Models;
 
 namespace PlantKeeperAPI.Controllers;
@@ -26,12 +28,15 @@ namespace PlantKeeperAPI.Controllers;
 [RequiresPermission(Permissions.AlmanacRead)]
 public class SpeciesCareProfileController : ControllerBase
 {
+    private readonly IAlmanacProposalService _almanac;
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public SpeciesCareProfileController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public SpeciesCareProfileController(PlantKeeperDbContext dbContext, IMapper mapper,
+        IAlmanacProposalService almanac)
     {
         _dbContext = dbContext;
+        _almanac = almanac;
         _mapper = mapper;
     }
 
@@ -56,6 +61,7 @@ public class SpeciesCareProfileController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<ActionResult<SpeciesCareProfileDto>> Upsert([FromRoute] Guid speciesId,
         [FromBody] InputSpeciesCareProfile input)
     {
@@ -63,6 +69,9 @@ public class SpeciesCareProfileController : ControllerBase
 
         SpeciesCareProfile? profile = await _dbContext.SpeciesCareProfiles
             .FirstOrDefaultAsync(entry => entry.SpeciesId == speciesId);
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.SpeciesCareProfile, AlmanacChangeOperation.Update,
+                input, speciesId, profile?.Version) is { } queued) return Accepted(queued);
 
         bool created = profile is null;
 

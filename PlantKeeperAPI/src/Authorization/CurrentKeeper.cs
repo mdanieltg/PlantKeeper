@@ -16,6 +16,13 @@ public interface ICurrentKeeper
     Guid Id { get; }
 
     bool IsSignedIn { get; }
+
+    /// <summary>
+    /// Whether the caller holds a <see cref="Permissions" /> value. Read off the same claims
+    /// the authorization policies use, so a service asking this and an endpoint attribute
+    /// gating on it can never disagree.
+    /// </summary>
+    bool HasPermission(string permission);
 }
 
 /// <summary>
@@ -42,9 +49,13 @@ public class CurrentKeeper : ICurrentKeeper
 
     public bool IsSignedIn => Id != Guid.Empty;
 
+    public bool HasPermission(string permission) =>
+        _httpContextAccessor.HttpContext?.User.HasClaim(Permissions.ClaimType, permission) ?? false;
+
     private sealed class NoKeeper : ICurrentKeeper
     {
         public Guid Id => Guid.Empty;
         public bool IsSignedIn => false;
+        public bool HasPermission(string permission) => false;
     }
 }

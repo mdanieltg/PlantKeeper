@@ -3,9 +3,12 @@
 namespace PlantKeeperAPI.Entities;
 
 [DebuggerDisplay("Climate: {Name}")]
-public class Climate
+public class Climate : IAlmanacVersioned
 {
     public Guid Id { get; set; }
+
+    /// <summary>Bumped on every saved change. See <see cref="IAlmanacVersioned" />.</summary>
+    public int Version { get; set; }
     public required string Name { get; set; }
     public required string Temperature { get; set; }
     public required string Precipitation { get; set; }

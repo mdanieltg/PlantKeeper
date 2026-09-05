@@ -8,10 +8,13 @@ namespace PlantKeeperAPI.Entities;
 /// exists is complete.
 /// </summary>
 [DebuggerDisplay("Flowering: {BloomSeason}")]
-public class SpeciesFloweringProfile
+public class SpeciesFloweringProfile : IAlmanacVersioned
 {
     /// <summary>Primary key and foreign key both — one profile per species.</summary>
     public Guid SpeciesId { get; set; }
+
+    /// <summary>Bumped on every saved change. See <see cref="IAlmanacVersioned" />.</summary>
+    public int Version { get; set; }
 
     public required string BloomSeason { get; set; }
     public required string BloomCareNotes { get; set; }

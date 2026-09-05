@@ -3,10 +3,12 @@ using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PlantKeeperAPI.Authorization;
-using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Database;
 using PlantKeeperAPI.Entities;
 using PlantKeeperAPI.Extensions;
+using PlantKeeperAPI.Enums;
+using PlantKeeperAPI.Services;
 using PlantKeeperAPI.Models;
 
 namespace PlantKeeperAPI.Controllers;
@@ -23,12 +25,15 @@ namespace PlantKeeperAPI.Controllers;
 [RequiresPermission(Permissions.AlmanacRead)]
 public class SpeciesPropagationMethodsController : ControllerBase
 {
+    private readonly IAlmanacProposalService _almanac;
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public SpeciesPropagationMethodsController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public SpeciesPropagationMethodsController(PlantKeeperDbContext dbContext, IMapper mapper,
+        IAlmanacProposalService almanac)
     {
         _dbContext = dbContext;
+        _almanac = almanac;
         _mapper = mapper;
     }
 
@@ -54,6 +59,7 @@ public class SpeciesPropagationMethodsController : ControllerBase
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<ActionResult<SpeciesPropagationMethodDto>> Create([FromRoute] Guid speciesId,
         [FromBody] InputSpeciesPropagationMethod input)
     {
@@ -63,6 +69,9 @@ public class SpeciesPropagationMethodsController : ControllerBase
             return UnprocessableEntity(new ValidationProblemDetails(ModelState));
 
         if (await CollidesAsync(speciesId, input, null)) return DuplicateCell();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.SpeciesPropagationMethod, AlmanacChangeOperation.Create,
+                input, speciesId, null) is { } queued) return Accepted(queued);
 
         var rowToCreate = _mapper.Map<SpeciesPropagationMethod>(input);
         rowToCreate.SpeciesId = speciesId;
@@ -92,6 +101,7 @@ public class SpeciesPropagationMethodsController : ControllerBase
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Update([FromRoute] Guid speciesId, [FromRoute] Guid linkId,
         [FromBody] InputSpeciesPropagationMethod input)
     {
@@ -102,6 +112,9 @@ public class SpeciesPropagationMethodsController : ControllerBase
             return UnprocessableEntity(new ValidationProblemDetails(ModelState));
 
         if (await CollidesAsync(speciesId, input, linkId)) return DuplicateCell();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.SpeciesPropagationMethod, AlmanacChangeOperation.Update,
+                input, currentRow.Id, currentRow.Version) is { } queued) return Accepted(queued);
 
         _mapper.Map(input, currentRow);
         await _dbContext.SaveChangesAsync();
@@ -114,10 +127,14 @@ public class SpeciesPropagationMethodsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid speciesId, [FromRoute] Guid linkId)
     {
         SpeciesPropagationMethod? row = await FindAsync(speciesId, linkId);
         if (row is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.SpeciesPropagationMethod, AlmanacChangeOperation.Delete,
+                null, row.Id, row.Version) is { } queued) return Accepted(queued);
 
         return await this.DeleteAsync(_dbContext, row) ?? NoContent();
     }

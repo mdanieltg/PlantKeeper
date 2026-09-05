@@ -9,10 +9,13 @@ namespace PlantKeeperAPI.Entities;
 /// nulls.
 /// </summary>
 [DebuggerDisplay("Care profile: {LightMin}..{LightMax}, {MinTemperatureCelsius}-{MaxTemperatureCelsius}C")]
-public class SpeciesCareProfile
+public class SpeciesCareProfile : IAlmanacVersioned
 {
     /// <summary>Primary key and foreign key both — one profile per species.</summary>
     public Guid SpeciesId { get; set; }
+
+    /// <summary>Bumped on every saved change. See <see cref="IAlmanacVersioned" />.</summary>
+    public int Version { get; set; }
 
     public LightLevel LightMin { get; set; }
     public LightLevel LightMax { get; set; }

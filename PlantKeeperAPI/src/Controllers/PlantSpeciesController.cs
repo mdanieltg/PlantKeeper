@@ -1,10 +1,12 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PlantKeeperAPI.Authorization;
-using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Database;
 using PlantKeeperAPI.Entities;
 using PlantKeeperAPI.Extensions;
+using PlantKeeperAPI.Enums;
 using PlantKeeperAPI.Models;
 using PlantKeeperAPI.Services;
 
@@ -22,12 +24,15 @@ namespace PlantKeeperAPI.Controllers;
 [RequiresPermission(Permissions.AlmanacRead)]
 public class PlantSpeciesController : ControllerBase
 {
+    private readonly IAlmanacProposalService _almanac;
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IPlantSpeciesService _species;
 
-    public PlantSpeciesController(PlantKeeperDbContext dbContext, IPlantSpeciesService species)
+    public PlantSpeciesController(PlantKeeperDbContext dbContext, IPlantSpeciesService species,
+        IAlmanacProposalService almanac)
     {
         _dbContext = dbContext;
+        _almanac = almanac;
         _species = species;
     }
 
@@ -40,10 +45,14 @@ public class PlantSpeciesController : ControllerBase
     [ProducesResponseType<PlantSpeciesDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<ActionResult<PlantSpeciesDto>> Create([FromBody] InputPlantSpecies species)
     {
         if (!await ReferencesResolveAsync(species))
             return UnprocessableEntity(new ValidationProblemDetails(ModelState));
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.PlantSpecies, AlmanacChangeOperation.Create,
+                species, null, null) is { } queued) return Accepted(queued);
 
         SpeciesWriteResult result = await _species.CreateAsync(species);
         if (result.Status is SpeciesWriteStatus.FloweringConflict) return FloweringConflict();
@@ -66,10 +75,19 @@ public class PlantSpeciesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Update([FromRoute] Guid speciesId, [FromBody] InputPlantSpecies species)
     {
         if (!await ReferencesResolveAsync(species))
             return UnprocessableEntity(new ValidationProblemDetails(ModelState));
+
+        // The version has to be read before the change is proposed, and a species that is
+        // not there cannot be proposed against - so this doubles as the 404 the service
+        // would otherwise report after the proposal was already written.
+        if (await CurrentVersionAsync(speciesId) is not { } version) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.PlantSpecies, AlmanacChangeOperation.Update,
+                species, speciesId, version) is { } queued) return Accepted(queued);
 
         SpeciesWriteResult result = await _species.UpdateAsync(speciesId, species);
 
@@ -86,8 +104,14 @@ public class PlantSpeciesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid speciesId)
     {
+        if (await CurrentVersionAsync(speciesId) is not { } version) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.PlantSpecies, AlmanacChangeOperation.Delete,
+                null, speciesId, version) is { } queued) return Accepted(queued);
+
         SpeciesDeleteResult result = await _species.DeleteAsync(speciesId);
 
         return result.Status switch
@@ -97,6 +121,14 @@ public class PlantSpeciesController : ControllerBase
             _ => NoContent()
         };
     }
+
+    /// <summary>The species' current version, or null if there is no such species.</summary>
+    private async ValueTask<int?> CurrentVersionAsync(Guid speciesId) =>
+        await _dbContext.PlantSpecies
+            .AsNoTracking()
+            .Where(species => species.Id == speciesId)
+            .Select(species => (int?)species.Version)
+            .FirstOrDefaultAsync();
 
     private async ValueTask<bool> ReferencesResolveAsync(InputPlantSpecies species)
     {

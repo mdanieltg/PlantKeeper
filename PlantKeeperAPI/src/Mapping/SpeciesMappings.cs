@@ -15,37 +15,44 @@ public class SpeciesMappings : IRegister
         // from the write side on purpose - PlantSpeciesService owns the profile rows.
         config.NewConfig<PlantSpecies, PlantSpeciesDto>();
         config.NewConfig<InputPlantSpecies, PlantSpecies>()
+            .IgnoreVersion()
             .IgnoreNavigations()
             .Ignore(species => species.Id);
 
         config.NewConfig<SpeciesCareProfile, SpeciesCareProfileDto>();
         config.NewConfig<InputSpeciesCareProfile, SpeciesCareProfile>()
+            .IgnoreVersion()
             .IgnoreNavigations()
             .Ignore(profile => profile.SpeciesId);
 
         config.NewConfig<SpeciesToxicityProfile, SpeciesToxicityProfileDto>();
         config.NewConfig<InputSpeciesToxicityProfile, SpeciesToxicityProfile>()
+            .IgnoreVersion()
             .IgnoreNavigations()
             .Ignore(profile => profile.SpeciesId);
 
         config.NewConfig<SpeciesFloweringProfile, SpeciesFloweringProfileDto>();
         config.NewConfig<InputSpeciesFloweringProfile, SpeciesFloweringProfile>()
+            .IgnoreVersion()
             .IgnoreNavigations()
             .Ignore(profile => profile.SpeciesId);
 
         // The matrices take their species from the route, never from the body.
         config.NewConfig<SpeciesFertilizerRecommendation, SpeciesFertilizerRecommendationDto>();
         config.NewConfig<InputSpeciesFertilizerRecommendation, SpeciesFertilizerRecommendation>()
+            .IgnoreVersion()
             .IgnoreNavigations()
             .Ignore(recommendation => recommendation.Id, recommendation => recommendation.SpeciesId);
 
         config.NewConfig<SpeciesTreatmentRecommendation, SpeciesTreatmentRecommendationDto>();
         config.NewConfig<InputSpeciesTreatmentRecommendation, SpeciesTreatmentRecommendation>()
+            .IgnoreVersion()
             .IgnoreNavigations()
             .Ignore(recommendation => recommendation.Id, recommendation => recommendation.SpeciesId);
 
         config.NewConfig<SpeciesPropagationMethod, SpeciesPropagationMethodDto>();
         config.NewConfig<InputSpeciesPropagationMethod, SpeciesPropagationMethod>()
+            .IgnoreVersion()
             .IgnoreNavigations()
             .Ignore(link => link.Id, link => link.SpeciesId);
 

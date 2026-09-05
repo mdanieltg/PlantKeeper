@@ -2,11 +2,13 @@ using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using PlantKeeperAPI.Authorization;
-using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Database;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Enums;
 using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Models;
+using PlantKeeperAPI.Services;
 
 namespace PlantKeeperAPI.Controllers;
 
@@ -17,12 +19,15 @@ namespace PlantKeeperAPI.Controllers;
 [RequiresPermission(Permissions.AlmanacRead)]
 public class PropagationMethodsController : ControllerBase
 {
+    private readonly IAlmanacProposalService _almanac;
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public PropagationMethodsController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public PropagationMethodsController(PlantKeeperDbContext dbContext, IMapper mapper,
+        IAlmanacProposalService almanac)
     {
         _dbContext = dbContext;
+        _almanac = almanac;
         _mapper = mapper;
     }
 
@@ -37,8 +42,12 @@ public class PropagationMethodsController : ControllerBase
     [ProducesResponseType<PropagationMethodDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<ActionResult<PropagationMethodDto>> Create([FromBody] InputPropagationMethod method)
     {
+        if (await _almanac.SubmitAsync(AlmanacTargets.PropagationMethod, AlmanacChangeOperation.Create,
+                method) is { } queued) return Accepted(queued);
+
         var methodToCreate = _mapper.Map<PropagationMethod>(method);
         await _dbContext.PropagationMethods.AddAsync(methodToCreate);
         await _dbContext.SaveChangesAsync();
@@ -64,10 +73,14 @@ public class PropagationMethodsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Update([FromRoute] Guid methodId, [FromBody] InputPropagationMethod method)
     {
         PropagationMethod? currentPropagationMethod = await _dbContext.PropagationMethods.FindAsync(methodId);
         if (currentPropagationMethod is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.PropagationMethod, AlmanacChangeOperation.Update,
+                method, currentPropagationMethod.Id, currentPropagationMethod.Version) is { } queued) return Accepted(queued);
 
         _mapper.Map(method, currentPropagationMethod);
         await _dbContext.SaveChangesAsync();
@@ -80,10 +93,14 @@ public class PropagationMethodsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid methodId)
     {
         PropagationMethod? method = await _dbContext.PropagationMethods.FindAsync(methodId);
         if (method is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.PropagationMethod, AlmanacChangeOperation.Delete,
+                null, method.Id, method.Version) is { } queued) return Accepted(queued);
 
         return await this.DeleteAsync(_dbContext, method) ?? NoContent();
     }

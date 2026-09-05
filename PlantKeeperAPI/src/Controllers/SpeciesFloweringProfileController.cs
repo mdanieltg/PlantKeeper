@@ -3,11 +3,12 @@ using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PlantKeeperAPI.Authorization;
-using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Database;
 using PlantKeeperAPI.Entities;
-using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Enums;
+using PlantKeeperAPI.Extensions;
+using PlantKeeperAPI.Services;
 using PlantKeeperAPI.Models;
 
 namespace PlantKeeperAPI.Controllers;
@@ -24,12 +25,15 @@ namespace PlantKeeperAPI.Controllers;
 [RequiresPermission(Permissions.AlmanacRead)]
 public class SpeciesFloweringProfileController : ControllerBase
 {
+    private readonly IAlmanacProposalService _almanac;
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public SpeciesFloweringProfileController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public SpeciesFloweringProfileController(PlantKeeperDbContext dbContext, IMapper mapper,
+        IAlmanacProposalService almanac)
     {
         _dbContext = dbContext;
+        _almanac = almanac;
         _mapper = mapper;
     }
 
@@ -54,6 +58,7 @@ public class SpeciesFloweringProfileController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<ActionResult<SpeciesFloweringProfileDto>> Upsert([FromRoute] Guid speciesId,
         [FromBody] InputSpeciesFloweringProfile input)
     {
@@ -73,6 +78,9 @@ public class SpeciesFloweringProfileController : ControllerBase
 
         SpeciesFloweringProfile? profile = await _dbContext.SpeciesFloweringProfiles
             .FirstOrDefaultAsync(entry => entry.SpeciesId == speciesId);
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.SpeciesFloweringProfile, AlmanacChangeOperation.Update,
+                input, speciesId, profile?.Version) is { } queued) return Accepted(queued);
 
         bool created = profile is null;
 
@@ -101,12 +109,16 @@ public class SpeciesFloweringProfileController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid speciesId)
     {
         SpeciesFloweringProfile? profile = await _dbContext.SpeciesFloweringProfiles
             .FirstOrDefaultAsync(entry => entry.SpeciesId == speciesId);
 
         if (profile is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.SpeciesFloweringProfile, AlmanacChangeOperation.Delete,
+                null, speciesId, profile.Version) is { } queued) return Accepted(queued);
 
         return await this.DeleteAsync(_dbContext, profile) ?? NoContent();
     }

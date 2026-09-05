@@ -21,6 +21,7 @@ builder.Services.AddMapping();
 builder.Services.AddApiDocumentation();
 
 builder.Services.AddScoped<IPlantSpeciesService, PlantSpeciesService>();
+builder.Services.AddScoped<IAlmanacProposalService, AlmanacProposalService>();
 
 WebApplication app = builder.Build();
 

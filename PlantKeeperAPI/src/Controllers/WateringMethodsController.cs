@@ -2,11 +2,13 @@ using System.Net.Mime;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using PlantKeeperAPI.Authorization;
-using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
+using PlantKeeperAPI.Database;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Enums;
 using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Models;
+using PlantKeeperAPI.Services;
 
 namespace PlantKeeperAPI.Controllers;
 
@@ -17,12 +19,15 @@ namespace PlantKeeperAPI.Controllers;
 [RequiresPermission(Permissions.AlmanacRead)]
 public class WateringMethodsController : ControllerBase
 {
+    private readonly IAlmanacProposalService _almanac;
     private readonly PlantKeeperDbContext _dbContext;
     private readonly IMapper _mapper;
 
-    public WateringMethodsController(PlantKeeperDbContext dbContext, IMapper mapper)
+    public WateringMethodsController(PlantKeeperDbContext dbContext, IMapper mapper,
+        IAlmanacProposalService almanac)
     {
         _dbContext = dbContext;
+        _almanac = almanac;
         _mapper = mapper;
     }
 
@@ -37,8 +42,12 @@ public class WateringMethodsController : ControllerBase
     [ProducesResponseType<WateringMethodDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<ActionResult<WateringMethodDto>> Create([FromBody] InputWateringMethod method)
     {
+        if (await _almanac.SubmitAsync(AlmanacTargets.WateringMethod, AlmanacChangeOperation.Create,
+                method) is { } queued) return Accepted(queued);
+
         var methodToCreate = _mapper.Map<WateringMethod>(method);
         await _dbContext.WateringMethods.AddAsync(methodToCreate);
         await _dbContext.SaveChangesAsync();
@@ -64,11 +73,15 @@ public class WateringMethodsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Update([FromRoute] Guid wateringMethodId,
         [FromBody] InputWateringMethod method)
     {
         WateringMethod? currentWateringMethod = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
         if (currentWateringMethod is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.WateringMethod, AlmanacChangeOperation.Update,
+                method, currentWateringMethod.Id, currentWateringMethod.Version) is { } queued) return Accepted(queued);
 
         _mapper.Map(method, currentWateringMethod);
         await _dbContext.SaveChangesAsync();
@@ -81,10 +94,14 @@ public class WateringMethodsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<AlmanacChangeProposalDto>(StatusCodes.Status202Accepted)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid wateringMethodId)
     {
         WateringMethod? method = await _dbContext.WateringMethods.FindAsync(wateringMethodId);
         if (method is null) return NotFound();
+
+        if (await _almanac.SubmitAsync(AlmanacTargets.WateringMethod, AlmanacChangeOperation.Delete,
+                null, method.Id, method.Version) is { } queued) return Accepted(queued);
 
         return await this.DeleteAsync(_dbContext, method) ?? NoContent();
     }

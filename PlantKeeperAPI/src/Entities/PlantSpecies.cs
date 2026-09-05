@@ -4,9 +4,12 @@ using PlantKeeperAPI.Enums;
 namespace PlantKeeperAPI.Entities;
 
 [DebuggerDisplay("Species: {ScientificName}")]
-public class PlantSpecies
+public class PlantSpecies : IAlmanacVersioned
 {
     public Guid Id { get; set; }
+
+    /// <summary>Bumped on every saved change. See <see cref="IAlmanacVersioned" />.</summary>
+    public int Version { get; set; }
     public required string ScientificName { get; set; }
 
     /// <summary>Primary common name, in whichever language the collection uses for it.</summary>

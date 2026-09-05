@@ -10,9 +10,12 @@ namespace PlantKeeperAPI.Entities;
 /// primary seed method.
 /// </summary>
 [DebuggerDisplay("Propagation link (primary: {IsPrimary})")]
-public class SpeciesPropagationMethod
+public class SpeciesPropagationMethod : IAlmanacVersioned
 {
     public Guid Id { get; set; }
+
+    /// <summary>Bumped on every saved change. See <see cref="IAlmanacVersioned" />.</summary>
+    public int Version { get; set; }
     public Guid SpeciesId { get; set; }
     public Guid PropagationMethodId { get; set; }
     public bool IsPrimary { get; set; }
