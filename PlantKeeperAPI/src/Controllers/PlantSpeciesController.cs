@@ -85,8 +85,18 @@ public class PlantSpeciesController : ControllerBase
     [HttpDelete("{speciesId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async ValueTask<IActionResult> Delete([FromRoute] Guid speciesId) =>
-        await _species.DeleteAsync(speciesId) ? NoContent() : NotFound();
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async ValueTask<IActionResult> Delete([FromRoute] Guid speciesId)
+    {
+        SpeciesDeleteResult result = await _species.DeleteAsync(speciesId);
+
+        return result.Status switch
+        {
+            SpeciesDeleteStatus.NotFound => NotFound(),
+            SpeciesDeleteStatus.StillInUse => Conflict(DeleteExtensions.StillInUse(result.ReferencedBy)),
+            _ => NoContent()
+        };
+    }
 
     private async ValueTask<bool> ReferencesResolveAsync(InputPlantSpecies species)
     {

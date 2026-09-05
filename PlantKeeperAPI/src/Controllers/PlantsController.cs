@@ -90,14 +90,12 @@ public class PlantsController : ControllerBase
     [HttpDelete("{plantId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid plantId)
     {
         Plant? plant = await _dbContext.Plants.FindAsync(plantId);
         if (plant is null) return NotFound();
 
-        _dbContext.Remove(plant);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, plant) ?? NoContent();
     }
 }

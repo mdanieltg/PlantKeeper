@@ -68,6 +68,41 @@ public static class TestKeepers
         }
     }
 
+    /// <summary>Creates a keeper for one test to own and destroy.</summary>
+    public static async Task<Guid> CreateAsync(PlantKeeperApiFactory factory, string userName)
+    {
+        await using AsyncServiceScope scope = factory.Services.CreateAsyncScope();
+        UserManager<Keeper> keepers = scope.ServiceProvider.GetRequiredService<UserManager<Keeper>>();
+
+        Keeper keeper = new()
+        {
+            UserName = userName,
+            DisplayName = userName,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        Check(await keepers.CreateAsync(keeper, Password));
+        Check(await keepers.AddToRoleAsync(keeper, RoleNames.Keeper));
+
+        return keeper.Id;
+    }
+
+    /// <summary>
+    /// Deletes a keeper through <see cref="UserManager{TUser}" />, which is what an admin
+    /// endpoint will eventually do. The cascade is the database's, not EF's - nothing here
+    /// loads the tree first.
+    /// </summary>
+    public static async Task DeleteAsync(PlantKeeperApiFactory factory, Guid keeperId)
+    {
+        await using AsyncServiceScope scope = factory.Services.CreateAsyncScope();
+        UserManager<Keeper> keepers = scope.ServiceProvider.GetRequiredService<UserManager<Keeper>>();
+
+        Keeper keeper = await keepers.FindByIdAsync(keeperId.ToString())
+                        ?? throw new InvalidOperationException($"No keeper '{keeperId}'.");
+
+        Check(await keepers.DeleteAsync(keeper));
+    }
+
     private static void Check(IdentityResult result)
     {
         if (result.Succeeded) return;

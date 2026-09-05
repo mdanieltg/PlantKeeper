@@ -6,6 +6,7 @@ using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Enums;
 using PlantKeeperAPI.Models;
 
@@ -99,6 +100,7 @@ public class SpeciesFloweringProfileController : ControllerBase
     [HttpDelete]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid speciesId)
     {
         SpeciesFloweringProfile? profile = await _dbContext.SpeciesFloweringProfiles
@@ -106,9 +108,6 @@ public class SpeciesFloweringProfileController : ControllerBase
 
         if (profile is null) return NotFound();
 
-        _dbContext.Remove(profile);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, profile) ?? NoContent();
     }
 }

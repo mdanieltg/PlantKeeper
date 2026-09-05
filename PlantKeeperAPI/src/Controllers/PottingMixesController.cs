@@ -5,6 +5,7 @@ using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Models;
 
 namespace PlantKeeperAPI.Controllers;
@@ -78,14 +79,12 @@ public class PottingMixesController : ControllerBase
     [HttpDelete("{pottingMixId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid pottingMixId)
     {
         PottingMix? pottingMix = await _dbContext.PottingMixes.FindAsync(pottingMixId);
         if (pottingMix is null) return NotFound();
 
-        _dbContext.Remove(pottingMix);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, pottingMix) ?? NoContent();
     }
 }

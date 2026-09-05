@@ -5,6 +5,7 @@ using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Models;
 
 namespace PlantKeeperAPI.Controllers;
@@ -78,14 +79,12 @@ public class PropagationMethodsController : ControllerBase
     [HttpDelete("{methodId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid methodId)
     {
         PropagationMethod? method = await _dbContext.PropagationMethods.FindAsync(methodId);
         if (method is null) return NotFound();
 
-        _dbContext.Remove(method);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, method) ?? NoContent();
     }
 }

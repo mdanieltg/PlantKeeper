@@ -91,15 +91,13 @@ public class PropagationBatchesController : ControllerBase
     [HttpDelete("{propagationBatchId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid propagationBatchId)
     {
         PropagationBatch? batch = await _dbContext.PropagationBatches.FindAsync(propagationBatchId);
         if (batch is null) return NotFound();
 
-        _dbContext.Remove(batch);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, batch) ?? NoContent();
     }
 
     private async ValueTask<bool> ReferencesResolveAsync(InputPropagationBatch batch)

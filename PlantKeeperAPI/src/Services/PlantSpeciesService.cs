@@ -1,5 +1,6 @@
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
@@ -84,16 +85,27 @@ public class PlantSpeciesService : IPlantSpeciesService
         return new SpeciesWriteResult(SpeciesWriteStatus.Success, await GetAsync(speciesId));
     }
 
-    public async ValueTask<bool> DeleteAsync(Guid speciesId)
+    public async ValueTask<SpeciesDeleteResult> DeleteAsync(Guid speciesId)
     {
         PlantSpecies? species = await _dbContext.PlantSpecies.FindAsync(speciesId);
-        if (species is null) return false;
+        if (species is null) return new SpeciesDeleteResult(SpeciesDeleteStatus.NotFound);
 
-        // The profile rows cascade - their foreign key is their primary key.
+        // The profile rows and matrix cells cascade - they belong to this species and mean
+        // nothing without it. Plants and propagation batches do not: they belong to a
+        // keeper, and the foreign key is Restrict so the database refuses instead.
         _dbContext.Remove(species);
-        await _dbContext.SaveChangesAsync();
 
-        return true;
+        try
+        {
+            await _dbContext.SaveChangesAsync();
+            return new SpeciesDeleteResult(SpeciesDeleteStatus.Success);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is PostgresException { SqlState: "23503" } violation)
+        {
+            _dbContext.Entry(species).State = EntityState.Unchanged;
+            return new SpeciesDeleteResult(SpeciesDeleteStatus.StillInUse, violation.TableName);
+        }
     }
 
     private static IQueryable<PlantSpecies> WithProfiles(IQueryable<PlantSpecies> query) => query

@@ -80,15 +80,13 @@ public class PestsController : ControllerBase
     [HttpDelete("{pestId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid pestId)
     {
         Pest? pest = await _dbContext.Pests.FindAsync(pestId);
         if (pest is null) return NotFound();
 
-        _dbContext.Remove(pest);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, pest) ?? NoContent();
     }
 
     [HttpGet("{pestId:guid}/treatments")]

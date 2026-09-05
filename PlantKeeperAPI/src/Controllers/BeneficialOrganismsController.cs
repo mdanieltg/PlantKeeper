@@ -81,15 +81,13 @@ public class BeneficialOrganismsController : ControllerBase
     [HttpDelete("{organismId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid organismId)
     {
         BeneficialOrganism? organism = await _dbContext.BeneficialOrganisms.FindAsync(organismId);
         if (organism is null) return NotFound();
 
-        _dbContext.Remove(organism);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, organism) ?? NoContent();
     }
 
     [HttpGet("{organismId:guid}/species")]

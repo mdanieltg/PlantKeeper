@@ -14,6 +14,25 @@ public enum SpeciesWriteStatus
 
 public record SpeciesWriteResult(SpeciesWriteStatus Status, PlantSpeciesDto? Species = null);
 
+public enum SpeciesDeleteStatus
+{
+    Success,
+    NotFound,
+
+    /// <summary>
+    /// Plants or propagation batches still point at it. Since <c>RestrictAlmanacDeletes</c>
+    /// the database refuses this rather than cascading through collections the deleter
+    /// cannot see.
+    /// </summary>
+    StillInUse
+}
+
+/// <param name="ReferencedBy">
+/// The table still holding a reference, when <see cref="SpeciesDeleteStatus.StillInUse" />.
+/// Null otherwise.
+/// </param>
+public record SpeciesDeleteResult(SpeciesDeleteStatus Status, string? ReferencedBy = null);
+
 /// <summary>
 /// The species aggregate. Care and toxicity profiles are required in C# but the foreign
 /// key sits on the dependent, so the database cannot enforce their presence - writing the whole
@@ -25,5 +44,5 @@ public interface IPlantSpeciesService
     ValueTask<PlantSpeciesDto?> GetAsync(Guid speciesId);
     ValueTask<SpeciesWriteResult> CreateAsync(InputPlantSpecies input);
     ValueTask<SpeciesWriteResult> UpdateAsync(Guid speciesId, InputPlantSpecies input);
-    ValueTask<bool> DeleteAsync(Guid speciesId);
+    ValueTask<SpeciesDeleteResult> DeleteAsync(Guid speciesId);
 }

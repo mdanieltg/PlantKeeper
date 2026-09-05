@@ -5,6 +5,7 @@ using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Models;
 
 namespace PlantKeeperAPI.Controllers;
@@ -78,14 +79,12 @@ public class TreatmentsController : ControllerBase
     [HttpDelete("{treatmentId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid treatmentId)
     {
         Treatment? treatment = await _dbContext.Treatments.FindAsync(treatmentId);
         if (treatment is null) return NotFound();
 
-        _dbContext.Remove(treatment);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, treatment) ?? NoContent();
     }
 }

@@ -90,15 +90,13 @@ public class TreatmentLogsController : ControllerBase
     [HttpDelete("{treatmentLogId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid treatmentLogId)
     {
         TreatmentLog? log = await _dbContext.TreatmentLogs.FindAsync(treatmentLogId);
         if (log is null) return NotFound();
 
-        _dbContext.Remove(log);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, log) ?? NoContent();
     }
 
     private async ValueTask<bool> ReferencesResolveAsync(InputTreatmentLog log)

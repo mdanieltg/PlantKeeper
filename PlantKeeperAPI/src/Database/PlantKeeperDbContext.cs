@@ -106,6 +106,20 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
 
         IdentitySeedData.Seed(modelBuilder);
 
+        // Delete behaviour is stated on every relationship below, never left to the
+        // default, and the rule is where the row sits rather than what it is:
+        //
+        //   Restrict  crosses out of one keeper's collection into the shared almanac, or
+        //             joins two almanac rows. A cascade here reaches keepers the deleter
+        //             cannot see and whose data they have no business removing.
+        //   Cascade   stays inside a single aggregate - a plant's logs, a species' profiles
+        //             and matrix rows, a keeper's whole tree - or removes a pure link row.
+        //   SetNull   the two genuinely optional references on PropagationBatch, which
+        //             survive losing what they point at.
+        //
+        // Restrict means the database refuses the delete; controllers translate that into
+        // 409 rather than letting it surface as a 500.
+
         modelBuilder.Entity<PlantSpecies>(builder =>
         {
             // Primary key
@@ -115,11 +129,13 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(species => species.Climate)
                 .WithMany(climate => climate.SpeciesList)
                 .HasForeignKey(species => species.ClimateId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(species => species.PottingMix)
                 .WithMany(mix => mix.SpeciesList)
                 .HasForeignKey(species => species.PottingMixId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Property(species => species.Name)
                 .HasMaxLength(50)
@@ -151,7 +167,8 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(profile => profile.Species)
                 .WithOne(species => species.Care)
                 .HasForeignKey<SpeciesCareProfile>(profile => profile.SpeciesId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(profile => profile.LightMin)
                 .HasConversion<string>()
@@ -191,7 +208,8 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(profile => profile.Species)
                 .WithOne(species => species.Toxicity)
                 .HasForeignKey<SpeciesToxicityProfile>(profile => profile.SpeciesId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(profile => profile.ToHumans)
                 .HasConversion<string>()
@@ -216,7 +234,8 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(profile => profile.Species)
                 .WithOne(species => species.Flowering)
                 .HasForeignKey<SpeciesFloweringProfile>(profile => profile.SpeciesId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(profile => profile.BloomSeason)
                 .HasMaxLength(150)
@@ -241,7 +260,8 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(plant => plant.Species)
                 .WithMany(species => species.Plants)
                 .HasForeignKey(plant => plant.SpeciesId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Property(plant => plant.Alias)
                 .HasMaxLength(50)
@@ -340,11 +360,13 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(log => log.Plant)
                 .WithMany(plant => plant.FertilizationLogs)
                 .HasForeignKey(log => log.PlantId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
             builder.HasOne(log => log.FertilizerUsed)
                 .WithMany(method => method.Logs)
                 .HasForeignKey(log => log.FertilizerId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Property(log => log.Dose)
                 .HasMaxLength(100);
@@ -361,7 +383,8 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(log => log.Plant)
                 .WithMany(plant => plant.ObservationLogs)
                 .HasForeignKey(log => log.PlantId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(log => log.Notes)
                 .HasMaxLength(300);
@@ -376,7 +399,8 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(log => log.Plant)
                 .WithMany(plant => plant.RepottingLogs)
                 .HasForeignKey(log => log.PlantId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(log => log.Dimensions)
                 .HasMaxLength(50)
@@ -400,11 +424,13 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(log => log.Plant)
                 .WithMany(plant => plant.TreatmentLogs)
                 .HasForeignKey(log => log.PlantId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
             builder.HasOne(log => log.Treatment)
                 .WithMany(method => method.Logs)
                 .HasForeignKey(log => log.TreatmentId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Property(log => log.Comments)
                 .HasMaxLength(255);
@@ -419,7 +445,17 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(log => log.WateringMethod)
                 .WithMany(method => method.Logs)
                 .HasForeignKey(log => log.MethodId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Declared rather than left to convention. It cascaded correctly by discovery,
+            // but every other log states this relationship, and an unstated one is exactly
+            // what "cascading by omission" looks like.
+            builder.HasOne(log => log.Plant)
+                .WithMany(plant => plant.WateringLogs)
+                .HasForeignKey(log => log.PlantId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(log => log.Comments)
                 .HasMaxLength(255);
@@ -457,6 +493,9 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             // Many-to-many
             builder.HasMany(pest => pest.Treatments)
                 .WithMany(treatment => treatment.Pests)
+                // Cascade, by EF's default for an implicit join. Correct here: these rows
+                // carry no payload, so deleting either end should just unlink, and there is
+                // nothing to lose with the link.
                 .UsingEntity(join => join.ToTable("PestTreatments"));
         });
 
@@ -497,7 +536,8 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(recommendation => recommendation.Species)
                 .WithMany(species => species.FertilizerRecommendations)
                 .HasForeignKey(recommendation => recommendation.SpeciesId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
             // One cell per species and fertilizer category
             builder.HasIndex(recommendation => new { recommendation.SpeciesId, recommendation.Category })
@@ -524,11 +564,13 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(recommendation => recommendation.Species)
                 .WithMany(species => species.TreatmentRecommendations)
                 .HasForeignKey(recommendation => recommendation.SpeciesId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
             builder.HasOne(recommendation => recommendation.Treatment)
                 .WithMany(treatment => treatment.SpeciesRecommendations)
                 .HasForeignKey(recommendation => recommendation.TreatmentId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
 
             // One cell per species and treatment
             builder.HasIndex(recommendation => new { recommendation.SpeciesId, recommendation.TreatmentId })
@@ -551,11 +593,13 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(link => link.Species)
                 .WithMany(species => species.PropagationMethods)
                 .HasForeignKey(link => link.SpeciesId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
             builder.HasOne(link => link.Method)
                 .WithMany(method => method.SpeciesLinks)
                 .HasForeignKey(link => link.PropagationMethodId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
 
             // One row per species and propagation method
             builder.HasIndex(link => new { link.SpeciesId, link.PropagationMethodId })
@@ -583,13 +627,20 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(batch => batch.Species)
                 .WithMany(species => species.PropagationBatches)
                 .HasForeignKey(batch => batch.SpeciesId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Both optional, so the row survives losing either. SetNull rather than the
+            // default ClientSetNull: that only nulls what EF happens to have loaded, and
+            // leaves the database itself refusing the delete.
             builder.HasOne(batch => batch.SourcePlant)
                 .WithMany(plant => plant.PropagationBatches)
-                .HasForeignKey(batch => batch.SourcePlantId);
+                .HasForeignKey(batch => batch.SourcePlantId)
+                .OnDelete(DeleteBehavior.SetNull);
             builder.HasOne(batch => batch.Method)
                 .WithMany(method => method.Batches)
-                .HasForeignKey(batch => batch.PropagationMethodId);
+                .HasForeignKey(batch => batch.PropagationMethodId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             builder.Property(batch => batch.Medium)
                 .HasConversion<string>()
@@ -616,7 +667,8 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne(log => log.Plant)
                 .WithMany(plant => plant.GrowthLogs)
                 .HasForeignKey(log => log.PlantId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(log => log.HeightCm)
                 .HasPrecision(6, 1);
@@ -667,7 +719,8 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
             builder.HasOne<Keeper>()
                 .WithMany()
                 .HasForeignKey(entity => entity.KeeperId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasQueryFilter(entity => entity.KeeperId == _currentKeeper.Id);
         });

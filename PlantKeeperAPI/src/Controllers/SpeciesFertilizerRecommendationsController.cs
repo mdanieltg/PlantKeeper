@@ -6,6 +6,7 @@ using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Database;
 using PlantKeeperAPI.DataTransferObjects;
 using PlantKeeperAPI.Entities;
+using PlantKeeperAPI.Extensions;
 using PlantKeeperAPI.Models;
 
 namespace PlantKeeperAPI.Controllers;
@@ -113,15 +114,13 @@ public class SpeciesFertilizerRecommendationsController : ControllerBase
     [HttpDelete("{recommendationId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid speciesId, [FromRoute] Guid recommendationId)
     {
         SpeciesFertilizerRecommendation? row = await FindAsync(speciesId, recommendationId);
         if (row is null) return NotFound();
 
-        _dbContext.Remove(row);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, row) ?? NoContent();
     }
 
     private async ValueTask<bool> SpeciesExistsAsync(Guid speciesId) =>

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PlantKeeperAPI.Database;
@@ -11,9 +12,11 @@ using PlantKeeperAPI.Database;
 namespace PlantKeeperAPI.Database.Migrations
 {
     [DbContext(typeof(PlantKeeperDbContext))]
-    partial class PlantKeeperDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260905195236_RestrictAlmanacDeletes")]
+    partial class RestrictAlmanacDeletes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -113,15 +113,13 @@ public class SpeciesPropagationMethodsController : ControllerBase
     [HttpDelete("{linkId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async ValueTask<IActionResult> Delete([FromRoute] Guid speciesId, [FromRoute] Guid linkId)
     {
         SpeciesPropagationMethod? row = await FindAsync(speciesId, linkId);
         if (row is null) return NotFound();
 
-        _dbContext.Remove(row);
-        await _dbContext.SaveChangesAsync();
-
-        return NoContent();
+        return await this.DeleteAsync(_dbContext, row) ?? NoContent();
     }
 
     private async ValueTask<bool> SpeciesExistsAsync(Guid speciesId) =>
