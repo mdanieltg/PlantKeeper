@@ -46,7 +46,7 @@ Never assume a frontend interface reflects the current API contract.
 |---|---|---|
 | Target framework | .NET 10 | |
 | EF Core | 10.0.11 | via `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3 |
-| Database | PostgreSQL 17 | migrated off MySQL/Pomelo, which has no EF Core 10 release |
+| Database | PostgreSQL 17 | via Npgsql; EF Core 10 requires it |
 | Object mapping | Mapster 7.4.0 | replaced AutoMapper in commit `339e341`; strict, see [2.9](#29-object-mapping) |
 | API docs | Scalar 2.17.2 | replaced Swashbuckle; document from `Microsoft.AspNetCore.OpenApi` 10.0.11 |
 
@@ -247,10 +247,8 @@ join tables.
 > **Design-time fallback:** `PlantKeeperDbContext` has a parameterless constructor and
 > an `OnConfiguring` override calling `UseNpgsql()` with no connection string. Building
 > the model needs a provider registered but never opens a connection, so no string is
-> required — which is why this stopped being the trap it was under Pomelo, where the
-> equivalent line passed an empty string to `ServerVersion.AutoDetect`. `dotnet ef`
-> normally resolves the context through the application's DI container, so the path is
-> rarely taken.
+> required. `dotnet ef` normally resolves the context through the application's DI
+> container, so the path is rarely taken.
 
 ### 2.7 Domain model
 
@@ -649,9 +647,9 @@ Three things about the stack are deliberate and easy to get wrong:
 - **nginx copies `dist/PlantKeeperWebApp/browser`,** not `dist`. The Angular application
   builder nests its output; copying the parent serves a directory listing.
 - **PostgreSQL is published to loopback only,** `127.0.0.1:5432:5432`, so host tooling
-  can reach it and nothing outside can. Inside the network it is `postgres:5432`. Keep
+  can reach it and nothing outside can. Inside the network it is `db:5432`. Keep
   the `127.0.0.1` prefix — Docker publishes past the host firewall without it.
-- **`postgres` has a healthcheck and the backend waits on `service_healthy`.** Plain
+- **`db` has a healthcheck and the backend waits on `service_healthy`.** Plain
   `depends_on` only orders startup. Npgsql opens no connection while services are being
   registered, so a backend that wins the race boots happily and then fails on its first
   request — waiting for healthy keeps the failure at `up` time, where it is visible.

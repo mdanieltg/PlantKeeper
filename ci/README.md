@@ -29,7 +29,7 @@ why no CORS configuration is involved.
 PostgreSQL **is** published, but to loopback only: `127.0.0.1:5432:5432`, so Rider or a
 `psql` client on this machine can reach it while nothing outside can. Keep the
 `127.0.0.1` prefix — a bare `5432:5432` binds every interface, and Docker publishes
-past the host firewall. Inside the compose network it is `postgres:5432`.
+past the host firewall. Inside the compose network it is `db:5432`.
 
 ### Applying migrations
 
@@ -41,7 +41,7 @@ whenever a migration is added:
 docker run --rm -v "$PWD/PlantKeeperAPI:/api:ro" \
   --network plantkeeper_plantkeeper-net \
   -e ASPNETCORE_ENVIRONMENT=Development \
-  -e "ConnectionStrings__Dev=Host=postgres;Port=5432;Database=plants;Username=postgres;Password=YOUR_PASSWORD" \
+  -e "ConnectionStrings__Dev=Host=db;Port=5432;Database=plants;Username=postgres;Password=YOUR_PASSWORD" \
   mcr.microsoft.com/dotnet/sdk:10.0 sh -c '
     cp -r /api /work && rm -rf /work/src/obj /work/src/bin &&
     dotnet tool install -g dotnet-ef >/dev/null 2>&1 &&
@@ -76,7 +76,7 @@ folds unquoted identifiers to lower case, and EF creates them in PascalCase.
 
 ```bash
 # edit CHANGE_ME first, then:
-docker compose -f ci/docker-compose.yml exec -T postgres psql -U postgres -d plants < ci/create-service-user.sql
+docker compose -f ci/docker-compose.yml exec -T db psql -U postgres -d plants < ci/create-service-user.sql
 ```
 
 Then point `CONNECTION_STRING` in `.env` at it (`Username=plantkeeper`) and recreate the

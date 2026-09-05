@@ -7,17 +7,15 @@
 -- the running API cannot alter the schema, and cannot touch the migration
 -- history table to misreport it.
 --
--- Two things differ from the MySQL original this replaced. Postgres folds
--- unquoted identifiers to lower case, and EF creates tables in PascalCase, so
--- every table name here is double-quoted -- drop the quotes and the grant
--- silently lands on a table that does not exist. And there is no
--- FLUSH PRIVILEGES; grants take effect immediately.
+-- Postgres folds unquoted identifiers to lower case, and EF creates tables in
+-- PascalCase, so every table name here is double-quoted -- drop the quotes and
+-- the grant silently lands on a table that does not exist. Grants take effect
+-- immediately; nothing needs reloading afterwards.
 --
 -- Before running:
 --   1. Replace CHANGE_ME with a real password.
---   2. No host part to configure. Postgres roles are not host-scoped the way
---      MySQL accounts are; reachability is decided by the network and
---      pg_hba.conf, not by the role.
+--   2. There is no host part to configure. Postgres roles are not host-scoped;
+--      reachability is decided by the network and pg_hba.conf, not by the role.
 --
 -- Run as the postgres superuser:
 --   docker compose -f ci/docker-compose.yml exec -T db \

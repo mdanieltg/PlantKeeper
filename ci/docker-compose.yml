@@ -1,40 +1,15 @@
 name: plantkeeper
 services:
   db:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PWD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-plants}
-    volumes:
-      - mysql-data:/var/lib/mysql
-    # Reachable as db:3306 from inside the network only - nothing is published to the
-    # host. Add a ports mapping if you need Rider or a mysql client to connect.
-    #expose:
-      #- "3306"
-    ports:
-      - "127.0.0.1:3306:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PWD}"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 30s
-    networks:
-      - plantkeeper-net
-
-  # Runs alongside `db`, not in place of it. The API is still on Pomelo/MySQL, so
-  # nothing reads this yet - it exists so the provider swap can be attempted against a
-  # database already known to be working. Once that swap is verified, `db` and its
-  # volume go away and this service takes the name.
-  postgres:
     image: postgres:17
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PWD}
       POSTGRES_DB: ${POSTGRES_DB:-plants}
     volumes:
-      # Deliberately not mysql-data. The two must never share a volume, and keeping
-      # them separate is what makes rolling back to MySQL free.
       - postgres-data:/var/lib/postgresql/data
+    # Published to loopback only, so host tooling can reach it and nothing outside can.
+    # Keep the 127.0.0.1 prefix: a bare 5432:5432 binds every interface, and Docker
+    # publishes past the host firewall.
     ports:
       - "127.0.0.1:5432:5432"
     healthcheck:
@@ -60,7 +35,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Dev: ${CONNECTION_STRING}
     depends_on:
-      postgres:
+      db:
         # Npgsql opens no connection at startup, so the API would boot against a
         # database still initialising and fail on the first request instead. Waiting
         # for healthy keeps the failure at `up` time, where it is visible.
@@ -80,7 +55,6 @@ services:
       - plantkeeper-net
 
 volumes:
-  mysql-data:
   postgres-data:
 
 networks:
