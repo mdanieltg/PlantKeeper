@@ -51,6 +51,7 @@ public class SpeciesMappings : IRegister
 
         config.NewConfig<PropagationBatch, PropagationBatchDto>();
         config.NewConfig<InputPropagationBatch, PropagationBatch>()
+            .IgnoreOwnership()
             .IgnoreNavigations()
             .Ignore(batch => batch.Id);
     }

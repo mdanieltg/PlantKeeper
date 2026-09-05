@@ -35,8 +35,10 @@ public static class IdentityServiceExtensions
             .AddEntityFrameworkStores<PlantKeeperDbContext>()
             .AddSignInManager();
 
-        // SignInManager reads the ambient request to issue and clear the cookie.
+        // SignInManager reads the ambient request to issue and clear the cookie, and
+        // CurrentKeeper reads the principal off it for the query filters.
         services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentKeeper, CurrentKeeper>();
 
         return services;
     }

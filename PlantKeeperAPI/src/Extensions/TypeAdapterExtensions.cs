@@ -28,6 +28,21 @@ public static class TypeAdapterExtensions
         return setter;
     }
 
+    /// <summary>
+    /// Ignores <see cref="IKeeperOwned.KeeperId" /> on the destination.
+    /// <para>
+    /// Ownership is never accepted from a request body - the controller sets it from the
+    /// signed-in principal - so no <c>Input</c> model has a source for it. Without this the
+    /// strict mapping configuration refuses to compile the pair at startup, which is the
+    /// intended safety net rather than an inconvenience: it means a new owned entity cannot
+    /// silently take its owner from the client.
+    /// </para>
+    /// </summary>
+    public static TypeAdapterSetter<TSource, TDestination> IgnoreOwnership<TSource, TDestination>(
+        this TypeAdapterSetter<TSource, TDestination> setter)
+        where TDestination : IKeeperOwned =>
+        setter.Ignore(nameof(IKeeperOwned.KeeperId));
+
     private static bool IsNavigation(Type type)
     {
         if (IsEntity(type)) return true;

@@ -13,6 +13,7 @@ public class PlantMappings : IRegister
     {
         config.NewConfig<Plant, PlantDto>();
         config.NewConfig<InputPlant, Plant>()
+            .IgnoreOwnership()
             .IgnoreNavigations()
             .Ignore(plant => plant.Id);
 
@@ -22,32 +23,38 @@ public class PlantMappings : IRegister
         config.NewConfig<WateringLog, WateringLogDto>()
             .Map(dto => dto.WateringMethodId, log => log.MethodId);
         config.NewConfig<InputWateringLog, WateringLog>()
+            .IgnoreOwnership()
             .Map(log => log.MethodId, input => input.WateringMethodId)
             .IgnoreNavigations()
             .Ignore(log => log.Id);
 
         config.NewConfig<FertilizationLog, FertilizationLogDto>();
         config.NewConfig<InputFertilizationLog, FertilizationLog>()
+            .IgnoreOwnership()
             .IgnoreNavigations()
             .Ignore(log => log.Id);
 
         config.NewConfig<TreatmentLog, TreatmentLogDto>();
         config.NewConfig<InputTreatmentLog, TreatmentLog>()
+            .IgnoreOwnership()
             .IgnoreNavigations()
             .Ignore(log => log.Id);
 
         config.NewConfig<RepottingLog, RepottingLogDto>();
         config.NewConfig<InputRepottingLog, RepottingLog>()
+            .IgnoreOwnership()
             .IgnoreNavigations()
             .Ignore(log => log.Id);
 
         config.NewConfig<ObservationLog, ObservationLogDto>();
         config.NewConfig<InputObservationLog, ObservationLog>()
+            .IgnoreOwnership()
             .IgnoreNavigations()
             .Ignore(log => log.Id);
 
         config.NewConfig<GrowthLog, GrowthLogDto>();
         config.NewConfig<InputGrowthLog, GrowthLog>()
+            .IgnoreOwnership()
             .IgnoreNavigations()
             .Ignore(log => log.Id);
     }

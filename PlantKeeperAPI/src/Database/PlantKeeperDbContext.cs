@@ -1,18 +1,20 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using PlantKeeperAPI.Authorization;
 using PlantKeeperAPI.Entities;
 
 namespace PlantKeeperAPI.Database;
 
 public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
 {
-    public PlantKeeperDbContext()
-    {
-    }
+    private readonly ICurrentKeeper _currentKeeper;
 
-    public PlantKeeperDbContext(DbContextOptions<PlantKeeperDbContext> options) : base(options)
-    {
-    }
+    /// <summary>Design-time only. No request exists and no query runs, so nobody owns anything.</summary>
+    public PlantKeeperDbContext() => _currentKeeper = CurrentKeeper.None;
+
+    public PlantKeeperDbContext(DbContextOptions<PlantKeeperDbContext> options, ICurrentKeeper currentKeeper)
+        : base(options) => _currentKeeper = currentKeeper;
 
     public DbSet<PlantSpecies> PlantSpecies { get; init; }
     public DbSet<Plant> Plants { get; init; }
@@ -37,6 +39,52 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
     public DbSet<SpeciesCareProfile> SpeciesCareProfiles { get; init; }
     public DbSet<SpeciesToxicityProfile> SpeciesToxicityProfiles { get; init; }
     public DbSet<SpeciesFloweringProfile> SpeciesFloweringProfiles { get; init; }
+
+    public override int SaveChanges()
+    {
+        StampOwnership();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        StampOwnership();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Assigns every newly added <see cref="IKeeperOwned" /> row to the signed-in keeper,
+    /// and refuses to let an existing one change hands.
+    /// <para>
+    /// Query filters govern reads only - nothing about them sets a value on write - so
+    /// without this a created row would carry <see cref="Guid.Empty" /> and become
+    /// invisible to everyone including its author. Doing it here rather than in each
+    /// controller means the eight cannot drift, and a ninth owned entity is covered the day
+    /// it is added. Together with <c>IgnoreOwnership()</c> on the write-side mappings, the
+    /// client cannot state ownership and the context always does.
+    /// </para>
+    /// <para>
+    /// An anonymous write would stamp <see cref="Guid.Empty" /> and fail on the foreign key
+    /// rather than write an orphan. Every write endpoint requires authentication, so that
+    /// path is unreachable; it fails closed if that ever stops being true.
+    /// </para>
+    /// </summary>
+    private void StampOwnership()
+    {
+        foreach (EntityEntry<IKeeperOwned> entry in ChangeTracker.Entries<IKeeperOwned>())
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.KeeperId = _currentKeeper.Id;
+                    break;
+
+                // Ownership is immutable. No Input model carries it, so this is a second
+                // lock rather than the only one.
+                case EntityState.Modified:
+                    entry.Property(nameof(IKeeperOwned.KeeperId)).IsModified = false;
+                    break;
+            }
+    }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -578,7 +626,49 @@ public class PlantKeeperDbContext : IdentityDbContext<Keeper, Role, Guid>
                 .HasMaxLength(300);
         });
 
+        // Tenancy, last: every IKeeperOwned type gets its column, its index, its foreign key
+        // and its filter from one place, so the eight cannot drift apart.
+        ConfigureKeeperOwnership<Plant>(modelBuilder);
+        ConfigureKeeperOwnership<PropagationBatch>(modelBuilder);
+        ConfigureKeeperOwnership<WateringLog>(modelBuilder);
+        ConfigureKeeperOwnership<FertilizationLog>(modelBuilder);
+        ConfigureKeeperOwnership<TreatmentLog>(modelBuilder);
+        ConfigureKeeperOwnership<RepottingLog>(modelBuilder);
+        ConfigureKeeperOwnership<ObservationLog>(modelBuilder);
+        ConfigureKeeperOwnership<GrowthLog>(modelBuilder);
+
+        // Deliberately no filter on Keeper. Sign-in looks a user up before any tenant
+        // context exists, so a self-referential filter would break login outright.
         modelBuilder.Entity<Keeper>(builder => builder.Property(keeper => keeper.DisplayName).HasMaxLength(100));
         modelBuilder.Entity<Role>(builder => builder.Property(role => role.Description).HasMaxLength(255));
     }
+
+    /// <summary>
+    /// Scopes one entity type to the signed-in keeper.
+    /// <para>
+    /// The filter reads <see cref="ICurrentKeeper.Id" /> through the field rather than
+    /// capturing a value, so EF compiles it to a query parameter re-evaluated per query
+    /// rather than baking one keeper into the cached model. An anonymous request yields
+    /// <see cref="Guid.Empty" />, which matches no row - the filter fails closed.
+    /// </para>
+    /// <para>
+    /// The foreign key is declared without navigations on either side. A collection on
+    /// <see cref="Keeper" /> would pull the whole domain into the Identity graph, and a
+    /// reference here would tempt callers to load it.
+    /// </para>
+    /// </summary>
+    private void ConfigureKeeperOwnership<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : class, IKeeperOwned =>
+        modelBuilder.Entity<TEntity>(builder =>
+        {
+            builder.Property(entity => entity.KeeperId).IsRequired();
+            builder.HasIndex(entity => entity.KeeperId);
+
+            builder.HasOne<Keeper>()
+                .WithMany()
+                .HasForeignKey(entity => entity.KeeperId)
+                .IsRequired();
+
+            builder.HasQueryFilter(entity => entity.KeeperId == _currentKeeper.Id);
+        });
 }

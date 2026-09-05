@@ -3,9 +3,12 @@
 namespace PlantKeeperAPI.Entities;
 
 [DebuggerDisplay("Plant: {Alias}")]
-public class Plant
+public class Plant : IKeeperOwned
 {
     public Guid Id { get; set; }
+
+    /// <summary>Owning keeper. The global query filter compares against this.</summary>
+    public Guid KeeperId { get; set; }
     public required string Alias { get; set; }
     public Guid SpeciesId { get; set; }
     public string? Comments { get; set; }

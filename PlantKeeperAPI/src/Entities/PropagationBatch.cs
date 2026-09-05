@@ -3,9 +3,12 @@ using PlantKeeperAPI.Enums;
 namespace PlantKeeperAPI.Entities;
 
 /// <summary>A batch of propagules currently rooting.</summary>
-public class PropagationBatch
+public class PropagationBatch : IKeeperOwned
 {
     public Guid Id { get; set; }
+
+    /// <summary>Owning keeper. The global query filter compares against this.</summary>
+    public Guid KeeperId { get; set; }
     public Guid SpeciesId { get; set; }
     public Guid? SourcePlantId { get; set; }
     public Guid? PropagationMethodId { get; set; }
