@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormField, form, maxLength, required, submit } from '@angular/forms/signals';
+import { FormField, applyWhen, form, maxLength, required, submit } from '@angular/forms/signals';
 import { ApiClient } from '../../core/api-client';
 import { messagesOf } from '../../core/field-errors';
 import { ApiFailure, errorsFor, toApiFailure } from '../../core/problem-details';
@@ -54,18 +54,31 @@ export class LookupPage {
   protected readonly model = signal<Record<string, string>>({});
 
   protected readonly entry = form(this.model, (path) => {
+    // One schema serves all five lookup tables, indexed by field key. Every table has a
+    // required `name`, and their max lengths differ (50 vs 30), so a flat registration
+    // stacked five "Name is required." messages on the shared path and conflicting length
+    // rules. Gate each table's rules on its being the active one, so only the active
+    // table's version of a key applies.
     for (const spec of LOOKUPS) {
       for (const field of spec.fields) {
         const target = (path as unknown as Record<string, never>)[field.key];
         if (!target) continue;
-        if (field.required) {
-          required(target, { message: `${field.label} is required.` });
-        }
-        if (field.maxLength) {
-          maxLength(target, field.maxLength, {
-            message: `${field.label} must be ${field.maxLength} characters or fewer.`,
-          });
-        }
+
+        applyWhen(
+          target,
+          () => this.spec()?.slug === spec.slug,
+          (active) => {
+            const t = active as unknown as never;
+            if (field.required) {
+              required(t, { message: `${field.label} is required.` });
+            }
+            if (field.maxLength) {
+              maxLength(t, field.maxLength, {
+                message: `${field.label} must be ${field.maxLength} characters or fewer.`,
+              });
+            }
+          },
+        );
       }
     }
   });
@@ -101,6 +114,9 @@ export class LookupPage {
     this.failure.set(null);
     this.editingId.set(null);
     this.model.set(blankRecord(spec));
+    // Shared form instance: clear touched/dirty so a field touched on another table (or a
+    // previous open) doesn't show its error before this form is touched. Model is set above.
+    this.entry().reset();
     this.panelOpen.set(true);
   }
 
@@ -110,6 +126,7 @@ export class LookupPage {
     this.failure.set(null);
     this.editingId.set(row.id);
     this.model.set(toRecord(spec, row));
+    this.entry().reset();
     this.panelOpen.set(true);
   }
 
