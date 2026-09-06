@@ -37,11 +37,23 @@
     @apply bg-bark-50 text-bark-800 antialiased;
   }
 
-  /* Every form control in the app shares one look. */
-  input[type='text'],
-  input[type='number'],
-  input[type='date'],
-  input[type='datetime-local'],
+  /*
+   * Every form control in the app shares one look. Stated as an exclusion, not a list of
+   * types: the list silently missed `password` — the login form is the only screen that
+   * has one — and rendered it as bare unstyled text with no border. A type nobody has
+   * used yet now gets the shared look rather than no look at all.
+   */
+  input:not(
+      [type='checkbox'],
+      [type='radio'],
+      [type='button'],
+      [type='submit'],
+      [type='reset'],
+      [type='file'],
+      [type='range'],
+      [type='color'],
+      [type='hidden']
+    ),
   textarea,
   select {
     @apply w-full rounded-lg border border-bark-300 bg-white px-3 py-2 text-sm text-bark-900
