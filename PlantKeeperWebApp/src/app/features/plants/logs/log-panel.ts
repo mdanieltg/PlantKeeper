@@ -8,7 +8,16 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormField, form, max, maxLength, min, required, submit } from '@angular/forms/signals';
+import {
+  FormField,
+  applyWhen,
+  form,
+  max,
+  maxLength,
+  min,
+  required,
+  submit,
+} from '@angular/forms/signals';
 import { ApiClient } from '../../../core/api-client';
 import { messagesOf } from '../../../core/field-errors';
 import { ApiFailure, errorsFor, toApiFailure } from '../../../core/problem-details';
@@ -63,23 +72,35 @@ export class LogPanel {
   protected readonly model = signal<Record<string, string>>({});
 
   protected readonly entry = form(this.model, (path) => {
-    // One schema serves every log type, so rules are indexed by key. Fields absent from
-    // the active spec simply never appear in the model.
+    // One schema serves every log type, so rules are indexed by key. Two specs can share a
+    // key with conflicting rules - observation's `notes` is required, growth's optional -
+    // and a flat registration unions them onto the shared `notes` path, so growth inherited
+    // observation's `required` and showed a stale "Notes is required." Gate each spec's
+    // rules on its being the active tab, so only the active spec's version of a key applies.
     for (const spec of LOG_SPECS) {
       for (const field of spec.fields) {
         const target = (path as unknown as Record<string, never>)[field.key];
         if (!target) continue;
 
-        if (field.required) required(target, { message: `${field.label} is required.` });
-        if (field.maxLength) {
-          maxLength(target, field.maxLength, {
-            message: `${field.label} must be ${field.maxLength} characters or fewer.`,
-          });
-        }
-        if (field.min !== undefined)
-          min(target, field.min, { message: `${field.label} cannot be negative.` });
-        if (field.max !== undefined)
-          max(target, field.max, { message: `${field.label} is too large.` });
+        applyWhen(
+          target,
+          () => this.spec().slug === spec.slug,
+          (active) => {
+            // Same `never` cast the flat version used: one schema serves every log shape, so
+            // the field path is deliberately untyped and the validators accept any target.
+            const t = active as unknown as never;
+            if (field.required) required(t, { message: `${field.label} is required.` });
+            if (field.maxLength) {
+              maxLength(t, field.maxLength, {
+                message: `${field.label} must be ${field.maxLength} characters or fewer.`,
+              });
+            }
+            if (field.min !== undefined)
+              min(t, field.min, { message: `${field.label} cannot be negative.` });
+            if (field.max !== undefined)
+              max(t, field.max, { message: `${field.label} is too large.` });
+          },
+        );
       }
     }
   });
