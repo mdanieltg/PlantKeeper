@@ -12,7 +12,7 @@ public class PropagationBatch : IKeeperOwned
     public Guid SpeciesId { get; set; }
     public Guid? SourcePlantId { get; set; }
     public Guid? PropagationMethodId { get; set; }
-    public DateTime StartDate { get; set; }
+    public DateTimeOffset StartDate { get; set; }
     public int Count { get; set; }
     public PropagationMedium Medium { get; set; }
     public RootingHormoneUse RootingHormone { get; set; }

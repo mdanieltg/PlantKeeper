@@ -12,7 +12,7 @@ public class WateringLog : IKeeperOwned
     public Guid KeeperId { get; set; }
     public Guid PlantId { get; set; }
     public Guid MethodId { get; set; }
-    public DateTime Date { get; set; }
+    public DateTimeOffset Date { get; set; }
     public string? Comments { get; set; }
 
     public Plant Plant { get; init; } = null!;

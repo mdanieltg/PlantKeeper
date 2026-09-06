@@ -8,7 +8,7 @@ public class InputPropagationBatch
     public Guid SpeciesId { get; set; }
     public Guid? SourcePlantId { get; set; }
     public Guid? PropagationMethodId { get; set; }
-    public DateTime StartDate { get; set; }
+    public DateTimeOffset StartDate { get; set; }
 
     [Range(0, int.MaxValue)]
     public int Count { get; set; }

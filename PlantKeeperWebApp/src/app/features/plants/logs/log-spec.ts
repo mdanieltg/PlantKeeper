@@ -211,7 +211,13 @@ export function toLogPayload(
 
   for (const field of spec.fields) {
     const raw = record[field.key] ?? '';
-    if (field.kind === 'number') {
+    if (field.kind === 'datetime') {
+      // `datetime-local` yields wall-clock with no offset ('2026-09-05T21:53'). Sending that
+      // as-is reached Npgsql as DateTime.Kind=Unspecified and a timestamptz column rejected
+      // it outright - every log write was a 500. `new Date(...)` reads it in the browser's
+      // zone, and toISOString() turns it into the UTC instant the API stores.
+      body[field.key] = raw === '' ? null : new Date(raw).toISOString();
+    } else if (field.kind === 'number') {
       body[field.key] = raw === '' ? null : Number(raw);
     } else if (field.required) {
       body[field.key] = raw;

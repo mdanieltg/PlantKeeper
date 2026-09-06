@@ -12,7 +12,7 @@ public class FertilizationLog : IKeeperOwned
     public Guid KeeperId { get; set; }
     public Guid PlantId { get; set; }
     public Guid FertilizerId { get; set; }
-    public DateTime Date { get; set; }
+    public DateTimeOffset Date { get; set; }
     public string? Dose { get; set; }
     public string? Comments { get; set; }
 

@@ -5,7 +5,7 @@ namespace PlantKeeperAPI.Models;
 public class InputGrowthLog
 {
     public Guid PlantId { get; set; }
-    public DateTime Date { get; set; }
+    public DateTimeOffset Date { get; set; }
 
     [Range(0, 99999.9)]
     public decimal? HeightCm { get; set; }

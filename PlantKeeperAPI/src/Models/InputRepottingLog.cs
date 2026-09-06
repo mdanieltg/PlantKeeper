@@ -5,7 +5,7 @@ namespace PlantKeeperAPI.Models;
 public class InputRepottingLog
 {
     public Guid PlantId { get; set; }
-    public DateTime Date { get; set; }
+    public DateTimeOffset Date { get; set; }
 
     [StringLength(50)]
     public required string Dimensions { get; set; }
