@@ -1,0 +1,101 @@
+<app-page-header
+  heading="Almanac review"
+  subheading="Every change to the shared almanac is recorded here — including the ones that applied straight away."
+/>
+
+<div class="mb-5 flex flex-wrap items-center gap-2">
+  @for (option of filters; track option) {
+    <button
+      type="button"
+      class="rounded-lg px-3 py-1.5 text-sm font-medium transition"
+      [class]="
+        filter() === option
+          ? 'bg-leaf-100 text-leaf-800'
+          : 'text-bark-600 hover:bg-bark-100 hover:text-bark-900'
+      "
+      (click)="filter.set(option)"
+    >
+      {{ option }}
+    </button>
+  }
+</div>
+
+@if (failure(); as problem) {
+  <p role="alert" class="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+    {{ problem.message }}
+  </p>
+}
+
+<app-load-state [loading]="proposals.isLoading()" [failed]="!!proposals.error()">
+  @if (proposals.value().length === 0) {
+    <app-empty-state
+      icon="📋"
+      heading="Nothing here"
+      message="No almanac changes match this filter."
+    />
+  } @else {
+    <ul class="space-y-3">
+      @for (proposal of proposals.value(); track proposal.id) {
+        <li class="card p-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-medium text-bark-900">{{ proposal.operation }}</span>
+            <span class="text-bark-600">{{ proposal.targetType }}</span>
+
+            <span
+              class="rounded-full px-2 py-0.5 text-xs font-medium"
+              [class]="
+                proposal.status === 'Pending'
+                  ? 'bg-amber-100 text-amber-800'
+                  : proposal.status === 'Applied'
+                    ? 'bg-leaf-100 text-leaf-800'
+                    : 'bg-bark-100 text-bark-600'
+              "
+            >
+              {{ proposal.status }}
+            </span>
+
+            @if (proposal.autoApproved) {
+              <span class="text-xs text-bark-500">applied without review</span>
+            }
+
+            <span class="ml-auto text-xs text-bark-500">{{ proposal.proposedAt }}</span>
+          </div>
+
+          @if (proposal.reviewNote) {
+            <p class="mt-2 text-sm text-bark-600">{{ proposal.reviewNote }}</p>
+          }
+
+          <details class="mt-3">
+            <summary class="cursor-pointer text-sm font-medium text-bark-600">
+              Proposed change
+            </summary>
+            <pre
+              class="mt-2 overflow-x-auto rounded-lg bg-bark-50 p-3 text-xs text-bark-800"
+            >{{ state(proposal) }}</pre>
+          </details>
+
+          @if (proposal.status === 'Pending') {
+            <div class="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                [disabled]="busy() === proposal.id"
+                (click)="reject(proposal)"
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                [disabled]="busy() === proposal.id"
+                (click)="approve(proposal)"
+              >
+                Approve
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</app-load-state>

@@ -186,7 +186,7 @@
     @if (pendingDelete()) {
       <app-confirm-delete
         subject="species"
-        cascadeNote="Its care, toxicity and flowering profiles go with it — and so does every plant of this species, along with all of their logs."
+        consequence="Its care, toxicity and flowering profiles go with it. Refused while any plant of this species still exists — including plants belonging to other keepers, which you cannot see."
         (confirmed)="confirmDelete()"
         (cancelled)="pendingDelete.set(false)"
       />

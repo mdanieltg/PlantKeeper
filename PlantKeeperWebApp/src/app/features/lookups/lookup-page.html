@@ -110,7 +110,7 @@
   @if (pendingDelete(); as row) {
     <app-confirm-delete
       [subject]="active.singular"
-      [cascadeNote]="active.cascadeNote"
+      [consequence]="active.consequence"
       (confirmed)="confirmDelete()"
       (cancelled)="pendingDelete.set(null)"
     />

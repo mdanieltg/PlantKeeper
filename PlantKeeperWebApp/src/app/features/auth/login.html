@@ -1,0 +1,56 @@
+<div class="mx-auto flex min-h-[70vh] max-w-sm flex-col justify-center">
+  <div class="card p-6">
+    <div class="mb-6 text-center">
+      <div class="text-3xl" aria-hidden="true">🌱</div>
+      <h1 class="mt-2 text-lg font-semibold text-bark-900">Sign in to PlantKeeper</h1>
+      <p class="mt-1 text-sm text-bark-600">Your collection is private to your account.</p>
+    </div>
+
+    @if (failure(); as problem) {
+      <p role="alert" class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+        {{ problem.message }}
+      </p>
+    }
+
+    <form (submit)="signIn($event)">
+      <app-field
+        label="User name"
+        controlId="userName"
+        [errors]="errorsOf(credentials.userName, 'userName')"
+        wrapperClass="mb-4"
+      >
+        <input
+          id="userName"
+          type="text"
+          autocomplete="username"
+          class="input"
+          [formField]="credentials.userName"
+        />
+      </app-field>
+
+      <app-field
+        label="Password"
+        controlId="password"
+        [errors]="errorsOf(credentials.password, 'password')"
+        wrapperClass="mb-4"
+      >
+        <input
+          id="password"
+          type="password"
+          autocomplete="current-password"
+          class="input"
+          [formField]="credentials.password"
+        />
+      </app-field>
+
+      <label class="mb-5 flex items-center gap-2 text-sm text-bark-600">
+        <input type="checkbox" class="rounded border-bark-300" [formField]="credentials.rememberMe" />
+        Keep me signed in on this device
+      </label>
+
+      <button type="submit" class="btn btn-primary w-full" [disabled]="busy()">
+        {{ busy() ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+  </div>
+</div>

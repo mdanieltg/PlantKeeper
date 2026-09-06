@@ -106,7 +106,7 @@
     @if (pendingDelete()) {
       <app-confirm-delete
         subject="plant"
-        cascadeNote="Its logs are removed with it."
+        consequence="Its logs are removed with it."
         (confirmed)="confirmDelete()"
         (cancelled)="pendingDelete.set(false)"
       />

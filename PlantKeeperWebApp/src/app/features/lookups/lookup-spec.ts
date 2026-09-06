@@ -21,11 +21,12 @@ export interface LookupSpec {
   readonly blurb: string;
   readonly icon: string;
   /**
-   * What a delete takes with it. The API's required relationships use EF Core's default
-   * DeleteBehavior.Cascade, so a delete never fails on a foreign key - it removes the
-   * whole dependent tree without complaint. The dialog has to say so.
+   * What a delete does. These are all shared-almanac rows, and since the API's
+   * RestrictAlmanacDeletes migration a delete no longer cascades through other keepers'
+   * collections - it is refused with 409 while anything still references the row. The
+   * dialog says so up front; the 409's own message names what is in the way.
    */
-  readonly cascadeNote: string;
+  readonly consequence: string;
   readonly columns: readonly { key: string; label: string }[];
   readonly fields: readonly LookupFieldSpec[];
 }
@@ -50,8 +51,8 @@ export const LOOKUPS: readonly LookupSpec[] = [
     singular: 'climate',
     blurb: 'Ambient conditions a species is suited to.',
     icon: '🌤️',
-    cascadeNote:
-      'Every species using this climate is deleted with it - and with each species, its care, toxicity and flowering profiles, its plants, and all of their logs.',
+    consequence:
+      'Refused while any species still uses this climate — reassign them first.',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'temperature', label: 'Temperature' },
@@ -84,8 +85,8 @@ export const LOOKUPS: readonly LookupSpec[] = [
     singular: 'potting mix',
     blurb: 'Substrate recipes used across the collection.',
     icon: '🪨',
-    cascadeNote:
-      'Every species using this mix is deleted with it - and with each species, its profiles, its plants, and all of their logs.',
+    consequence:
+      'Refused while any species still uses this mix — reassign them first.',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'description', label: 'Description' },
@@ -102,7 +103,7 @@ export const LOOKUPS: readonly LookupSpec[] = [
     singular: 'watering method',
     blurb: 'How water is delivered — referenced by every watering log.',
     icon: '💧',
-    cascadeNote: 'Every watering log recorded with this method is deleted with it.',
+    consequence: 'Refused while any watering log still records this method.',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'description', label: 'Description' },
@@ -119,7 +120,7 @@ export const LOOKUPS: readonly LookupSpec[] = [
     singular: 'fertilizer',
     blurb: 'Products on the shelf, mapped onto the almanac fertilization matrix.',
     icon: '🧪',
-    cascadeNote: 'Every fertilization log using this fertilizer is deleted with it.',
+    consequence: 'Refused while any fertilization log still uses this fertilizer.',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'npkRatio', label: 'NPK' },
@@ -145,8 +146,8 @@ export const LOOKUPS: readonly LookupSpec[] = [
     singular: 'treatment',
     blurb: 'Pest and disease treatments — referenced by every treatment log.',
     icon: '🛡️',
-    cascadeNote:
-      'Every treatment log using this treatment is deleted with it, along with any species recommendations referencing it.',
+    consequence:
+      'Refused while any treatment log or species recommendation still references it.',
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'description', label: 'Description' },

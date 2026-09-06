@@ -7,7 +7,7 @@
       </a>
 
       <nav class="flex items-center gap-1">
-        @for (item of nav; track item.path) {
+        @for (item of nav(); track item.path) {
           <a
             [routerLink]="item.path"
             routerLinkActive="bg-leaf-100 text-leaf-800"
@@ -17,6 +17,19 @@
           </a>
         }
       </nav>
+
+      @if (signedIn()) {
+        <div class="ml-auto flex items-center gap-3">
+          <span class="text-sm text-bark-600">{{ displayName() }}</span>
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-sm font-medium text-bark-600 transition hover:bg-bark-100 hover:text-bark-900"
+            (click)="signOut()"
+          >
+            Sign out
+          </button>
+        </div>
+      }
     </div>
   </header>
 

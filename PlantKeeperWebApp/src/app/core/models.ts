@@ -188,3 +188,53 @@ export interface GrowthLogDto {
   notes: string | null;
 }
 export type InputGrowthLog = Omit<GrowthLogDto, 'id'>;
+
+// --- Session -------------------------------------------------------------
+
+/** `SignedInKeeperDto`. Roles are for display; authorize against `permissions`. */
+export interface SignedInKeeper {
+  id: string;
+  userName: string;
+  displayName: string;
+  email: string | null;
+  roles: string[];
+  permissions: string[];
+}
+
+export interface InputSignIn {
+  userName: string;
+  password: string;
+  rememberMe: boolean;
+}
+
+// --- Almanac change control ----------------------------------------------
+
+export type AlmanacChangeOperation = 'Create' | 'Update' | 'Delete';
+export type AlmanacProposalStatus = 'Pending' | 'Applied' | 'Rejected';
+
+/**
+ * `AlmanacChangeProposalDto`. Every almanac write produces one, so this table is the
+ * almanac's history as well as its review queue.
+ *
+ * `proposedState` is the request body the proposer sent, in the shape of the matching
+ * `Input*` model - so its type depends on `targetType` and is left unknown here.
+ */
+export interface AlmanacChangeProposalDto {
+  id: string;
+  targetType: string;
+  targetId: string | null;
+  operation: AlmanacChangeOperation;
+  proposedState: unknown;
+  targetVersion: number | null;
+  status: AlmanacProposalStatus;
+  autoApproved: boolean;
+  proposedById: string;
+  proposedAt: string;
+  reviewedById: string | null;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+}
+
+export interface InputAlmanacReview {
+  note: string | null;
+}
