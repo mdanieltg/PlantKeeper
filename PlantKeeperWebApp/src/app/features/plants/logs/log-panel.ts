@@ -138,6 +138,12 @@ export class LogPanel {
   protected startAdd(): void {
     this.failure.set(null);
     this.model.set(this.withRefDefault(blankLog(this.spec())));
+    // The form instance is shared across every tab, so touched/dirty survive a tab switch
+    // or a cancel. Without this, reopening the form showed a required field's error before
+    // it was touched - e.g. touch observation Notes, switch to growth and back, reopen, and
+    // "Notes is required." is already there. reset() clears touched/dirty; the model above
+    // is the value reset.
+    this.entry().reset();
     this.adding.set(true);
   }
 
