@@ -6,17 +6,25 @@
     </button>
   </app-page-header>
 
+  <!--
+    Page level, not inside the create/edit panel: a delete is confirmed from the table with
+    the panel closed, so a banner nested in the panel left a refused delete (409) with no
+    outlet at all - the dialog just closed and the row silently stayed.
+  -->
+  @if (failure(); as problem) {
+    <p
+      role="alert"
+      class="mb-6 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+    >
+      {{ problem.message }}
+    </p>
+  }
+
   @if (panelOpen()) {
     <section class="card mb-6 p-5">
       <h2 class="mb-4 text-sm font-semibold text-bark-900">
         {{ editingId() ? 'Edit' : 'New' }} {{ active.singular }}
       </h2>
-
-      @if (failure(); as problem) {
-        <p class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {{ problem.message }}
-        </p>
-      }
 
       <div class="grid gap-4 sm:grid-cols-2">
         @for (field of active.fields; track field.key) {
