@@ -15,6 +15,15 @@ namespace PlantKeeperAPI.Tests;
 /// </summary>
 public class PlantKeeperApiFactory : WebApplicationFactory<Program>
 {
+    private readonly string? _keyRingPath;
+
+    /// <param name="keyRingPath">
+    /// Where DataProtection writes the keys that sign the session cookie. Left unset by
+    /// every test but <see cref="SessionKeyRingTests" />, which is the only one that cares
+    /// where they live - and cares enough to boot two hosts over the same directory.
+    /// </param>
+    public PlantKeeperApiFactory(string? keyRingPath = null) => _keyRingPath = keyRingPath;
+
     protected override IHost CreateHost(IHostBuilder builder)
     {
         // Development, deliberately: DatabaseServiceExtensions picks the connection-string
@@ -29,7 +38,9 @@ public class PlantKeeperApiFactory : WebApplicationFactory<Program>
 
                 // Closed. The tests set passwords through UserManager instead, so leaving
                 // the bootstrap endpoint open would only widen what they exercise.
-                ["Bootstrap:Secret"] = string.Empty
+                ["Bootstrap:Secret"] = string.Empty,
+
+                ["DataProtection:KeyPath"] = _keyRingPath
             }));
 
         return base.CreateHost(builder);

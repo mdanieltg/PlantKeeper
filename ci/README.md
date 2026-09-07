@@ -67,12 +67,12 @@ Three details in there are not obvious, and each one breaks the command if dropp
 
 ### A least-privilege service account
 
-`create-service-user.sql` creates a `plantkeeper` PostgreSQL role granted only
-`SELECT, INSERT, UPDATE, DELETE`, table by table, across the 26 application tables (the
-three payload-free join tables get no `UPDATE`). It holds no DDL rights and no access to
-`__EFMigrationsHistory`, so the running API cannot change the schema or misreport what
-has been migrated. Every table name in that file is double-quoted on purpose: Postgres
-folds unquoted identifiers to lower case, and EF creates them in PascalCase.
+`create-service-user.sql` creates a `plantkeeper` PostgreSQL role granted table by table
+across all 34 application tables, at the narrowest rights each one actually needs. It holds
+no DDL rights, and only `SELECT` on `__EFMigrationsHistory`, so the running API can read
+what has been applied but cannot change the schema or misreport it. Every table name in
+that file is double-quoted on purpose: Postgres folds unquoted identifiers to lower case,
+and EF creates them in PascalCase.
 
 ```bash
 # edit CHANGE_ME first, then:
@@ -83,19 +83,43 @@ Then point `CONNECTION_STRING` in `.env` at it (`Username=plantkeeper`) and recr
 backend. Migrations must keep using an administrative account — the command above
 deliberately fails as `plantkeeper`.
 
-Two notes on the grants:
+Notes on the grants:
 
 - The three payload-free join tables (`PestTreatments`, `SpeciesBeneficialOrganisms`,
   `BeneficialOrganismPests`) get `SELECT, INSERT, DELETE` but **not** `UPDATE`. The link
   endpoints replace a whole set, which EF performs as deletes plus inserts; there is no
   column to update.
-- `SHOW GRANTS FOR 'plantkeeper'@'%'` should list 26 table grants plus `USAGE ON *.*`.
-  A `GRANT ... ON plants.*` line would mean the per-table delimitation has been lost.
+- **Identity is nearly read-only.** `AspNetUsers` gets `UPDATE` for lockout counters, the
+  sign-out stamp rotation and the bootstrap hash, and `INSERT` on it and `AspNetUserRoles`
+  for the first-keeper seed at startup. Nothing else, and no `DELETE` anywhere — removing a
+  keeper or revoking a role is an administrative act.
+- **`AlmanacChangeProposals` gets no `DELETE`.** The queue is the almanac's history too.
+- The verification query is in the header of the SQL file itself. Expect **35 rows** — 34
+  tables plus history — split 23 / 3 / 2 / 1 / 6 by privilege set. A `__EFMigrationsHistory`
+  row carrying anything beyond `SELECT` means the delimitation has been lost.
 
 > Do not `source` or `set -a; . ci/.env` in a shell. The connection string contains
 > semicolons, which the shell reads as command separators — it silently truncates to
 > `Server=db` and, because shell variables take precedence over the file, compose then
 > starts the backend with no credentials. Let compose read the file itself.
+
+### Session keys
+
+Both compose files mount a `dataprotection-keys` volume at `/keys` and set
+`DataProtection__KeyPath` to match. That is where ASP.NET Core keeps the keys that sign and
+encrypt the `plantkeeper.session` cookie. Left in the container's own filesystem they go
+with every rebuild, and the next request from anyone who was already signed in fails to
+decrypt — a deploy signs them out, silently, and only them. Outside `Development` the API
+now refuses to start when the setting is missing rather than let that happen quietly.
+
+Two consequences worth knowing:
+
+- **The keys are written unencrypted.** There is no DPAPI on Linux and no certificate
+  configured, which the key manager announces at startup: `No XML encryptor configured`.
+  Whoever can read the volume can forge a session cookie, so treat it like the database
+  password.
+- **Deleting the volume signs everyone out**, which is also the only way to do that
+  wholesale. `docker compose down -v` takes it with the database.
 
 ### Tearing down
 

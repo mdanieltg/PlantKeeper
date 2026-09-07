@@ -11,8 +11,14 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Production: ${CONNECTION_STRING}
       Bootstrap__Secret: ${BOOTSTRAP_SECRET:-}
+      # Load-bearing: unset, the app refuses to start outside Development. The keys
+      # that sign the session cookie live here, so a redeploy that loses them signs
+      # out everyone who was signed in - silently, and only for them.
+      DataProtection__KeyPath: /keys
     expose:
       - "8080"
+    volumes:
+      - dataprotection-keys:/keys
     networks:
       - internal
       - app-network
@@ -26,6 +32,9 @@ services:
       - backend
     networks:
       - internal
+
+volumes:
+  dataprotection-keys:
 
 networks:
   internal:

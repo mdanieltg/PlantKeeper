@@ -35,6 +35,12 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Dev: ${CONNECTION_STRING}
       Bootstrap__Secret: ${BOOTSTRAP_SECRET:-}
+      # The DataProtection key ring, on a volume rather than in the container's
+      # writable layer. Without it every `up --build` mints new keys and every
+      # session cookie issued before the rebuild stops decrypting.
+      DataProtection__KeyPath: /keys
+    volumes:
+      - dataprotection-keys:/keys
     depends_on:
       db:
         # Npgsql opens no connection at startup, so the API would boot against a
@@ -57,6 +63,7 @@ services:
 
 volumes:
   postgres-data:
+  dataprotection-keys:
 
 networks:
   plantkeeper-net:

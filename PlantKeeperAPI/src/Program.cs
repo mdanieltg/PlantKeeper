@@ -14,6 +14,7 @@ builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.A
 
 builder.Services.AddDatabase(builder.Configuration, builder.Environment);
 builder.Services.AddIdentityFoundation();
+builder.Services.AddSessionKeyRing(builder.Configuration, builder.Environment);
 builder.Services.AddCookieAuthentication(builder.Environment);
 builder.Services.AddPermissionAuthorization();
 builder.Services.AddCorsPolicies();

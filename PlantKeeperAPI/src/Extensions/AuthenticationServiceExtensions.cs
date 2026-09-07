@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using PlantKeeperAPI.Authorization;
@@ -75,6 +76,66 @@ public static class AuthenticationServiceExtensions
             // role or permission change take effect on the next request instead of at the
             // next sign-in. It costs one user lookup per request, which this app can afford.
             options.ValidationInterval = TimeSpan.Zero);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Where the DataProtection key ring lives - the keys that sign and encrypt the
+    /// session cookie.
+    /// <para>
+    /// Unconfigured, the framework writes the ring under the user profile, which inside a
+    /// container is a directory in the writable layer. Every redeploy then starts with an
+    /// empty ring, mints a new key, and every outstanding <c>plantkeeper.session</c> cookie
+    /// stops decrypting - a deploy signs everybody out, silently and only for the people
+    /// who were already signed in. Pointing it at a mounted volume is what survives.
+    /// </para>
+    /// <para>
+    /// <c>SetApplicationName</c> is the other half. The default discriminator is derived
+    /// from the content root path, so keys written by a container that unpacked the app
+    /// somewhere else would be present on the volume and still refuse to decrypt. Pinning
+    /// the name makes the ring portable across image rebuilds.
+    /// </para>
+    /// <para>
+    /// The ring is written unencrypted - there is no DPAPI on Linux and no certificate
+    /// configured, which the key manager says out loud at startup: <c>No XML encryptor
+    /// configured</c>. Whoever can read the volume can forge a session cookie, so the
+    /// volume's own access control is what protects it.
+    /// </para>
+    /// <para>
+    /// Outside Development an unset path throws rather than falling back. The failure it
+    /// prevents is invisible - the app runs perfectly, and sessions quietly do not survive
+    /// a deploy - so it is worth refusing to start over.
+    /// </para>
+    /// </summary>
+    public static IServiceCollection AddSessionKeyRing(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IWebHostEnvironment environment)
+    {
+        string? keyPath = configuration["DataProtection:KeyPath"];
+
+        if (string.IsNullOrWhiteSpace(keyPath))
+        {
+            if (!environment.IsDevelopment())
+                throw new InvalidOperationException(
+                    "DataProtection:KeyPath is not configured. Set it to a directory on a "
+                    + "persistent volume - see ci/docker-compose.prod.yml - or every "
+                    + "deployment will issue new keys and sign out every existing session.");
+
+            // Development runs from `dotnet run` on a real user profile, where the default
+            // location already persists between runs. Nothing to fix.
+            return services;
+        }
+
+        // Created here rather than left to the repository, so a path that cannot be written
+        // fails at startup naming the directory instead of at the first key rotation.
+        DirectoryInfo keyRing = Directory.CreateDirectory(keyPath);
+
+        services
+            .AddDataProtection()
+            .PersistKeysToFileSystem(keyRing)
+            .SetApplicationName("PlantKeeper");
 
         return services;
     }
