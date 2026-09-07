@@ -72,10 +72,64 @@ GRANT SELECT, INSERT, DELETE ON TABLE public."PestTreatments"             TO pla
 GRANT SELECT, INSERT, DELETE ON TABLE public."SpeciesBeneficialOrganisms" TO plantkeeper;
 GRANT SELECT, INSERT, DELETE ON TABLE public."BeneficialOrganismPests"    TO plantkeeper;
 
+-- Identity. The API signs keepers in and rebuilds the principal from the
+-- database on every request (SecurityStampValidatorOptions.ValidationInterval is
+-- Zero), so it reads all seven of these constantly. The writes are narrower than
+-- they look, and each one has exactly one caller.
+--
+--   AspNetUsers      UPDATE  lockout counters on a failed sign-in, the security
+--                            stamp rotation on sign-out, and the hash the
+--                            bootstrap endpoint sets. Without it sign-in fails.
+--                    INSERT  SeedFirstKeeperAsync creates the first keeper at
+--                            boot when the table is empty. A fresh deployment
+--                            has no keeper without this.
+--   AspNetUserRoles  INSERT  the same seed assigns that keeper its three roles.
+--
+-- Neither gets DELETE. Removing a keeper or revoking a role is an administrative
+-- act, done with an admin connection, not something a request should be able to
+-- do -- and there is no endpoint for either.
+GRANT SELECT, INSERT, UPDATE ON TABLE public."AspNetUsers"      TO plantkeeper;
+GRANT SELECT, INSERT         ON TABLE public."AspNetUserRoles"  TO plantkeeper;
+
+-- Read-only: seeded by the AddIdentity migration and never written at runtime.
+-- AspNetRoleClaims is where the permission claims live, so it is read on every
+-- request that authorizes anything.
+GRANT SELECT ON TABLE public."AspNetRoles"      TO plantkeeper;
+GRANT SELECT ON TABLE public."AspNetRoleClaims" TO plantkeeper;
+GRANT SELECT ON TABLE public."AspNetUserClaims" TO plantkeeper;
+
+-- Nothing in the API touches these two today -- there are no external login
+-- providers and no two-factor -- but Identity's stores are registered against
+-- them, so a code path that reaches one should come back empty rather than
+-- raise a permission error. Read-only until a feature actually needs to write.
+GRANT SELECT ON TABLE public."AspNetUserLogins" TO plantkeeper;
+GRANT SELECT ON TABLE public."AspNetUserTokens" TO plantkeeper;
+
+-- The almanac's proposal queue, and its history. UPDATE is the decision being
+-- recorded on a pending row. No DELETE: a proposal that was applied, rejected or
+-- refused as stale is the record of what happened to the almanac, so nothing
+-- removes one.
+GRANT SELECT, INSERT, UPDATE ON TABLE public."AlmanacChangeProposals" TO plantkeeper;
+
+-- SELECT, and only SELECT, on the migration history. The API reads it at boot:
+-- SeedFirstKeeperAsync calls GetPendingMigrationsAsync() and skips the seed when
+-- migrations are outstanding, so with no grant at all the application throws
+-- `permission denied for table __EFMigrationsHistory` before it finishes
+-- starting. Reading what has been applied is harmless; the point of withholding
+-- the rest stands -- the service still cannot rewrite what the database believes
+-- it has applied.
+GRANT SELECT ON TABLE public."__EFMigrationsHistory" TO plantkeeper;
+
 -- Deliberately NOT granted:
+--   INSERT/UPDATE/DELETE on
 --   public."__EFMigrationsHistory" -- migrations run as an admin role, and the
 --                                     service must not be able to rewrite what the
---                                     database believes it has applied.
+--                                     database believes it has applied. SELECT is
+--                                     granted above, because the app reads it at boot.
+--   DELETE on the Identity tables  -- removing a keeper or revoking a role is an
+--                                     administrative act; no endpoint does either.
+--   DELETE on
+--   public."AlmanacChangeProposals" -- the queue doubles as the almanac's history.
 --   CREATE on schema public        -- no DDL at runtime.
 --   ALTER DEFAULT PRIVILEGES       -- a future table is not granted by accident;
 --                                     adding one means adding a line here.
@@ -90,9 +144,17 @@ GRANT SELECT, INSERT, DELETE ON TABLE public."BeneficialOrganismPests"    TO pla
 --   WHERE grantee = 'plantkeeper'
 --   GROUP BY table_name ORDER BY table_name;
 --
--- Expect 26 rows: 23 with SELECT, INSERT, UPDATE, DELETE and the three join
--- tables with SELECT, INSERT, DELETE. A `__EFMigrationsHistory` row would mean
--- the delimitation has been lost.
+-- Expect 35 rows, over the 34 application tables plus the history table:
+--
+--   23  SELECT, INSERT, UPDATE, DELETE   the entity tables
+--    3  SELECT, INSERT, DELETE           the payload-free join tables
+--    2  SELECT, INSERT, UPDATE           AspNetUsers, AlmanacChangeProposals
+--    1  SELECT, INSERT                   AspNetUserRoles
+--    6  SELECT                           the five remaining Identity tables and
+--                                        __EFMigrationsHistory
+--
+-- A `__EFMigrationsHistory` row carrying anything beyond SELECT would mean the
+-- delimitation has been lost.
 --
 -- Confirm DDL is refused:
 --   \c plants plantkeeper
