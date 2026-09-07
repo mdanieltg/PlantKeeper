@@ -1,0 +1,57 @@
+# Shared PostgreSQL for the host, beside the existing mysql-production.
+#
+# Deliberately its own compose project rather than a service in either app's file:
+# more than one stack points at this cluster, and none of them should be able to take
+# it down by running `down` on their own. Bring it up first, create that app's database
+# and roles, then bring the app up.
+#
+#   docker compose -f ci/docker-compose.postgres.yml up -d
+#
+# It lives in this repository because this is the repository that needed it first. If it
+# grows a second tenant, move the file to wherever the host's infrastructure lives - it
+# has no dependency on anything here.
+name: postgres-shared
+
+services:
+  postgres-production:
+    image: postgres:17
+    # Both, and they have to agree. Compose registers the service name as a network
+    # alias, but the containers that connect to this are in *other* compose projects,
+    # so the name they resolve is this one. `postgres` alone would be asking for a
+    # collision the first time another stack declares a service by that name.
+    container_name: postgres-production
+    restart: unless-stopped
+    environment:
+      # Fails at `up` with this message rather than starting a cluster nobody meant.
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PWD:?set POSTGRES_SUPERUSER_PWD in ci/.env}
+      # No POSTGRES_DB on purpose: a shared cluster gets one database per application,
+      # created explicitly, not one inherited from whichever app was installed first.
+      #
+      # The locale is stated rather than left to the image. The collation provider is
+      # the thing to protect: a nondeterministic ICU collation makes Postgres reject
+      # LIKE, and EF translates Contains and StartsWith to LIKE - so it would break
+      # every search in the app. libc/en_US.utf8 is what development already runs.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale-provider=libc --locale=en_US.utf8"
+    volumes:
+      - postgres-production-data:/var/lib/postgresql/data
+    # Not published. Reach it from other containers over app-network, and from the host
+    # with `docker exec -it postgres-production psql -U postgres`. Add
+    # `ports: ["127.0.0.1:5433:5432"]` if a GUI client on the host needs it - 5433
+    # because 5432 may already be somebody else's.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - app-network
+
+volumes:
+  postgres-production-data:
+
+networks:
+  app-network:
+    external: true
+
+# vim: set ts=2 sts=2 sw=2 et:

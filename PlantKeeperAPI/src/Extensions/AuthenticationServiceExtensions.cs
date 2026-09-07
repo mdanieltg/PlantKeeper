@@ -103,30 +103,21 @@ public static class AuthenticationServiceExtensions
     /// volume's own access control is what protects it.
     /// </para>
     /// <para>
-    /// Outside Development an unset path throws rather than falling back. The failure it
-    /// prevents is invisible - the app runs perfectly, and sessions quietly do not survive
-    /// a deploy - so it is worth refusing to start over.
+    /// Registering is side-effect free when the path is unset; refusing to run without one
+    /// is <see cref="RequireSessionKeyRing" />, on the pipeline side. That split is not
+    /// cosmetic - see the remarks there.
     /// </para>
     /// </summary>
     public static IServiceCollection AddSessionKeyRing(
         this IServiceCollection services,
-        IConfiguration configuration,
-        IWebHostEnvironment environment)
+        IConfiguration configuration)
     {
         string? keyPath = configuration["DataProtection:KeyPath"];
 
-        if (string.IsNullOrWhiteSpace(keyPath))
-        {
-            if (!environment.IsDevelopment())
-                throw new InvalidOperationException(
-                    "DataProtection:KeyPath is not configured. Set it to a directory on a "
-                    + "persistent volume - see ci/docker-compose.prod.yml - or every "
-                    + "deployment will issue new keys and sign out every existing session.");
-
-            // Development runs from `dotnet run` on a real user profile, where the default
-            // location already persists between runs. Nothing to fix.
-            return services;
-        }
+        // Unset is not decided here. Development wants the framework default - `dotnet run`
+        // on a real user profile, where it already persists between runs - and everything
+        // else is refused by RequireSessionKeyRing once the app actually starts.
+        if (string.IsNullOrWhiteSpace(keyPath)) return services;
 
         // Created here rather than left to the repository, so a path that cannot be written
         // fails at startup naming the directory instead of at the first key rotation.
@@ -185,6 +176,36 @@ public static class AuthenticationServiceExtensions
         forwardedHeaders.KnownProxies.Clear();
 
         app.UseForwardedHeaders(forwardedHeaders);
+
+        return app;
+    }
+
+    /// <summary>
+    /// Refuses to serve outside Development without a persistent key ring.
+    /// <para>
+    /// This runs after <c>builder.Build()</c> on purpose, and the reason is
+    /// <c>dotnet ef</c>. The EF tools build the application's whole host to find the
+    /// DbContext, so anything that throws while services are being registered takes the
+    /// migration command down with it - and EF reports its own downstream failure,
+    /// <c>The ConnectionString property has not been initialized</c>, which names nothing
+    /// about the actual cause. Design-time host building never gets past the built host,
+    /// so a check on this side lets migrations run while a real deployment still refuses.
+    /// </para>
+    /// <para>
+    /// Refusing at all is deliberate: the failure it prevents is invisible. Without a
+    /// persistent ring the app runs perfectly and sessions simply do not survive a deploy,
+    /// which nobody sees until somebody who was signed in comes back.
+    /// </para>
+    /// </summary>
+    public static WebApplication RequireSessionKeyRing(this WebApplication app)
+    {
+        if (app.Environment.IsDevelopment()) return app;
+
+        if (string.IsNullOrWhiteSpace(app.Configuration["DataProtection:KeyPath"]))
+            throw new InvalidOperationException(
+                "DataProtection:KeyPath is not configured. Set it to a directory on a "
+                + "persistent volume - see ci/docker-compose.prod.yml - or every deployment "
+                + "will issue new keys and sign out every existing session.");
 
         return app;
     }

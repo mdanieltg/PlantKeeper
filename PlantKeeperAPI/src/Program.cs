@@ -14,7 +14,7 @@ builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.A
 
 builder.Services.AddDatabase(builder.Configuration, builder.Environment);
 builder.Services.AddIdentityFoundation();
-builder.Services.AddSessionKeyRing(builder.Configuration, builder.Environment);
+builder.Services.AddSessionKeyRing(builder.Configuration);
 builder.Services.AddCookieAuthentication(builder.Environment);
 builder.Services.AddPermissionAuthorization();
 builder.Services.AddCorsPolicies();
@@ -27,6 +27,8 @@ builder.Services.AddScoped<IAlmanacProposalService, AlmanacProposalService>();
 WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.RequireSessionKeyRing();
+
 app.UseProxyHeaders();
 
 app.UseApiDocumentation();

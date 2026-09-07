@@ -53,7 +53,7 @@ docker run --rm -v "$PWD/PlantKeeperAPI:/api:ro" \
 Three details in there are not obvious, and each one breaks the command if dropped:
 
 - **It runs inside the compose network**, because `db` is not published to the host.
-  `Server=db` only resolves there.
+  `Host=db` only resolves there.
 - **The project is copied to `/work` and `obj/` deleted** before restoring. The mount is
   read-only and the host's `obj/project.assets.json` records host NuGet paths that do not
   exist in the container, so restoring against the mount fails and restoring *into* it
@@ -132,12 +132,73 @@ docker compose -f ci/docker-compose.yml down -v  # drop the volume too
 
 `docker-compose.prod.yml` pulls `localhost:5000/plantkeeper-{backend,frontend}:latest`
 from a local registry and joins an existing external `app-network`. It deliberately
-contains **no database service** — production is expected to point at a PostgreSQL that
-already exists, via `CONNECTION_STRING` in `.env`.
+contains **no database service** — it points at the shared cluster below, via
+`CONNECTION_STRING` in `.env`.
+
+### The shared PostgreSQL
+
+`docker-compose.postgres.yml` runs one `postgres-production` container on `app-network`,
+beside the host's existing `mysql-production`. It is a **separate compose project** on
+purpose: more than one stack points at that cluster, and none of them should be able to
+take it down by running `down` on its own.
+
+Two details in that file are load-bearing:
+
+- **`container_name` as well as the service name.** The containers that connect are in
+  other compose projects, so the name they resolve over `app-network` is the container's.
+  A service called `postgres` would collide with the first other stack that declares one.
+- **The initdb locale is stated, not inherited** — `libc` at `en_US.utf8`, no ICU. A
+  nondeterministic ICU collation makes Postgres reject `LIKE`, and EF translates
+  `Contains` and `StartsWith` to `LIKE`, so it would break every search in the app.
+
+Nothing is published to the host. Reach it with
+`docker exec -it postgres-production psql -U postgres`.
+
+### Standing up production, in order
+
+The order matters twice, and both are easy to get wrong:
 
 ```bash
+# 1. the shared cluster (once per host)
+docker compose -f ci/docker-compose.postgres.yml up -d
+
+# 2. this application's database (once)
+docker exec postgres-production psql -U postgres -c 'CREATE DATABASE plants;'
+
+# 3. the schema, as an administrative role, from inside app-network
+docker run --rm -v "$PWD/PlantKeeperAPI:/api:ro" --network app-network \
+  -e ASPNETCORE_ENVIRONMENT=Production \
+  -e "ConnectionStrings__Production=Host=postgres-production;Port=5432;Database=plants;Username=postgres;Password=YOUR_SUPERUSER_PASSWORD" \
+  mcr.microsoft.com/dotnet/sdk:10.0 sh -c '
+    cp -r /api /work && rm -rf /work/src/obj /work/src/bin &&
+    dotnet tool install -g dotnet-ef >/dev/null 2>&1 &&
+    export PATH="$PATH:/root/.dotnet/tools" &&
+    dotnet restore /work/src/PlantKeeperAPI.csproj >/dev/null &&
+    dotnet ef database update --project /work/src/PlantKeeperAPI.csproj'
+
+# 4. the runtime role - AFTER step 3, never before
+sed 's/CHANGE_ME/A_REAL_PASSWORD/' ci/create-service-user.sql \
+  | docker exec -i postgres-production psql -U postgres -d plants -v ON_ERROR_STOP=1
+
+# 5. point CONNECTION_STRING in ci/.env at that role, then start the app
 docker compose -f ci/docker-compose.prod.yml up -d
 ```
+
+- **Step 4 must follow step 3.** The grant script names tables one at a time, so against a
+  database with no schema it stops at `relation "public.Climates" does not exist`.
+- **Step 5 must follow step 3.** `SeedFirstKeeperAsync` skips with a warning while
+  migrations are pending, so a backend started against an empty database creates no keeper
+  — and the bootstrap endpoint then has no account to set a password on. If you did start
+  it early, restarting the backend after migrating is enough.
+- **The migration command needs the repository on the host**, even though the deployment
+  runs from prebuilt images. Check it out, or run step 3 from any machine that can reach
+  the cluster.
+- **It does not need `DataProtection__KeyPath`.** The app refuses to *serve* without one,
+  but that check deliberately sits past `builder.Build()` so `dotnet ef` — which builds the
+  whole host to find the DbContext — is unaffected.
+
+Finally, set the first password through `POST /api/authentication/bootstrap-password` with
+`BOOTSTRAP_SECRET`, then blank that secret and recreate the backend.
 
 The frontend publishes to `127.0.0.1:5004`, intended to sit behind a reverse proxy on
 the host. Adjust the port if it collides with something already deployed.
