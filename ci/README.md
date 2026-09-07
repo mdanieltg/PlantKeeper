@@ -141,3 +141,14 @@ docker compose -f ci/docker-compose.prod.yml up -d
 
 The frontend publishes to `127.0.0.1:5004`, intended to sit behind a reverse proxy on
 the host. Adjust the port if it collides with something already deployed.
+
+### The forwarded scheme
+
+Whatever terminates TLS has to send `X-Forwarded-Proto: https`, and `nginx.conf` passes it
+through rather than replacing it with its own `$scheme` — which is always `http`, because
+that is the hop from the terminator to this container. Get this wrong and the backend
+believes every request was insecure, which is not visible in any response the browser shows.
+
+`app.UseHsts()` covers `/api` responses only, since nginx serves the document itself, and it
+is excluded for `localhost` by default. **The site's HSTS header should come from the TLS
+terminator**, along with the HTTP→HTTPS redirect.
